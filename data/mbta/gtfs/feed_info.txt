@@ -1,0 +1,2 @@
+feed_publisher_name, feed_publisher_url,feed_lang,feed_start_date,feed_end_date,feed_version
+"MBTA","http://www.mbta.com","EN","20130304","20130621","Spring 2013 version 1D, 3/8/13"
