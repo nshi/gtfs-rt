@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-APPNAME="gtfs"
+APPNAME="gtfs-rt"
 
 # find voltdb binaries in either installation or distribution directory.
 if [ -n "$(which voltdb 2> /dev/null)" ]; then
