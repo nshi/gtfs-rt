@@ -39,7 +39,7 @@ function srccompile() {
     mkdir -p obj
     javac -target 1.6 -source 1.6 -classpath $APPCLASSPATH -d obj \
         src/java/com/google/transit/realtime/*.java \
-        src/java/org/voltdb/*.java
+        src/java/voltdb/gtfs/procedures/*.java
     # stop if compilation fails
     if [ $? != 0 ]; then exit; fi
 }

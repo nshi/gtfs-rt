@@ -51,3 +51,6 @@ CREATE TABLE calendar_dates
   date           timestamp   NOT NULL,
   exception_type tinyint     NOT NULL
 );
+
+-- Stored procedures
+CREATE PROCEDURE FROM CLASS voltdb.gtfs.procedures.InsertCalendar;
