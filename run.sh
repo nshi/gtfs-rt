@@ -61,13 +61,6 @@ function server() {
         license $LICENSE host $HOST
 }
 
-function dump() {
-    srccompile
-    java -classpath obj:$APPCLASSPATH:obj -Dlog4j.configuration=file://$LOG4J \
-        org.voltdb.GtfsExample \
-        $1
-}
-
 function help() {
     echo "Usage: ./run.sh {clean|dump}"
 }
