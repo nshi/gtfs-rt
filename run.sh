@@ -25,6 +25,7 @@ APPCLASSPATH=$CLASSPATH:$({ \
     \ls -1 "$VOLTDB_LIB"/extension/*.jar; \
 } 2> /dev/null | paste -sd ':' - )
 VOLTDB="$VOLTDB_BIN/voltdb"
+CSVLOADER="$VOLTDB_BIN/csvloader"
 LOG4J="$VOLTDB_VOLTDB/log4j.xml"
 LICENSE="$VOLTDB_VOLTDB/license.xml"
 HOST="localhost"
@@ -61,8 +62,15 @@ function server() {
         license $LICENSE host $HOST
 }
 
+function loadgtfs() {
+    $CSVLOADER --skip 1 -f data/mbta/gtfs/routes.txt routes
+    $CSVLOADER --skip 1 -f data/mbta/gtfs/trips.txt trips
+    $CSVLOADER --skip 1 -f data/mbta/gtfs/calendar.txt -p InsertCalendar
+    $CSVLOADER --skip 1 -f data/mbta/gtfs/calendar_dates.txt -p InsertCalendarDates
+}
+
 function help() {
-    echo "Usage: ./run.sh {clean|dump}"
+    echo "Usage: ./run.sh {clean|catalog|server|loadgtfs}"
 }
 
 # Run the target passed as the first arg on the command line
