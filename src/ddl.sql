@@ -80,4 +80,4 @@ CREATE TABLE calendar_dates
 -- Stored procedures
 CREATE PROCEDURE FROM CLASS voltdb.gtfs.procedures.InsertCalendar;
 CREATE PROCEDURE FROM CLASS voltdb.gtfs.procedures.InsertCalendarDates;
-CREATE PROCEDURE FROM CLASS voltdb.gtfs.procedures.InsertPosition;
+CREATE PROCEDURE FROM CLASS voltdb.realtime.procedures.InsertPosition;

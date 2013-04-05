@@ -21,7 +21,7 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  */
 
-package voltdb.gtfs.procedures;
+package voltdb.realtime.procedures;
 
 import org.voltdb.ProcInfo;
 import org.voltdb.SQLStmt;
@@ -58,8 +58,8 @@ public class InsertPosition extends VoltProcedure {
         long expiration = currentTime - history;
 
         Date start = dateFormat.parse(start_date);
-        // Convert timestamp from seconds to millis
-        long tsInMillis = ts * 1000;
+        // Convert timestamp from seconds to micros
+        long tsInMillis = ts * 1000 * 1000;
 
         voltQueueSQL(deleteOldSQL, trip_id, expiration);
         voltQueueSQL(insertSQL, trip_id, start, tsInMillis, stop, relationship,
