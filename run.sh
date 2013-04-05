@@ -40,7 +40,9 @@ function srccompile() {
     mkdir -p obj
     javac -target 1.6 -source 1.6 -classpath $APPCLASSPATH -d obj \
         src/java/com/google/transit/realtime/*.java \
-        src/java/voltdb/gtfs/procedures/*.java
+        src/java/voltdb/gtfs/procedures/*.java \
+        src/java/voltdb/realtime/procedures/*.java \
+        src/java/voltdb/realtime/*.java
     # stop if compilation fails
     if [ $? != 0 ]; then exit; fi
 }
@@ -69,10 +71,19 @@ function loadgtfs() {
     $CSVLOADER --skip 1 -f data/mbta/gtfs/calendar_dates.txt -p InsertCalendarDates
 }
 
+# load realtime feeds
+function loadrt() {
+    if [ $# -eq 0 ]; then echo "loadrt FILENAME" && exit; fi
+    echo Loading "$1"
+    # run the loader
+    java -classpath obj:$APPCLASSPATH:obj -Dlog4j.configuration=file://$LOG4J \
+        voltdb.realtime.Loader "$1"
+}
+
 function help() {
-    echo "Usage: ./run.sh {clean|catalog|server|loadgtfs}"
+    echo "Usage: ./run.sh {clean|catalog|server|loadgtfs|loadrt}"
 }
 
 # Run the target passed as the first arg on the command line
 # If no first arg, run server
-if [ $# -ge 1 ]; then $@; else server; fi
+if [ $# -ge 1 ]; then "$@"; else server; fi
