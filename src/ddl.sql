@@ -1,12 +1,17 @@
 CREATE TABLE vehicle_positions
 (
-  trip_id       varchar(40) NOT NULL,
-  start_date    timestamp   NOT NULL,
-  timestamp     timestamp   NOT NULL,
-  stop_sequence integer     DEFAULT 0,
-  status        tinyint     NOT NULL,
-  latitude      float       NOT NULL,
-  longitude     float       NOT NULL
+  trip_id      varchar(40) NOT NULL,
+  start_date   timestamp   NOT NULL,
+  timestamp    timestamp   NOT NULL,
+  stop         integer     DEFAULT 0,
+  relationship tinyint     NOT NULL,
+  latitude     float       NOT NULL,
+  longitude    float       NOT NULL,
+
+  PRIMARY KEY
+  (
+    trip_id, timestamp
+  )
 );
 
 PARTITION TABLE vehicle_positions ON COLUMN trip_id;
@@ -23,7 +28,12 @@ CREATE TABLE routes
   route_type       tinyint     NOT NULL,
   route_url        varchar(32) DEFAULT NULL,
   route_color      varchar(6)  DEFAULT NULL,
-  route_text_color varchar(6)  DEFAULT NULL
+  route_text_color varchar(6)  DEFAULT NULL,
+
+  PRIMARY KEY
+  (
+    route_id
+  )
 );
 
 CREATE TABLE trips
@@ -34,7 +44,12 @@ CREATE TABLE trips
   headsign     varchar(128) DEFAULT NULL,
   direction_id tinyint      DEFAULT -1,
   block_id     varchar(16)  DEFAULT NULL,
-  shape_id     varchar(16)  DEFAULT NULL
+  shape_id     varchar(16)  DEFAULT NULL,
+
+  PRIMARY KEY
+  (
+    trip_id
+  )
 );
 
 CREATE TABLE calendar
@@ -43,15 +58,26 @@ CREATE TABLE calendar
   weekdays   tinyint     NOT NULL, --compact field
   start_date timestamp   NOT NULL,
   end_date   timestamp   NOT NULL,
+
+  PRIMARY KEY
+  (
+    service_id
+  )
 );
 
 CREATE TABLE calendar_dates
 (
   service_id     varchar(32) NOT NULL,
   date           timestamp   NOT NULL,
-  exception_type tinyint     NOT NULL
+  exception_type tinyint     NOT NULL,
+
+  PRIMARY KEY
+  (
+    service_id, date
+  )
 );
 
 -- Stored procedures
 CREATE PROCEDURE FROM CLASS voltdb.gtfs.procedures.InsertCalendar;
 CREATE PROCEDURE FROM CLASS voltdb.gtfs.procedures.InsertCalendarDates;
+CREATE PROCEDURE FROM CLASS voltdb.gtfs.procedures.InsertPosition;
