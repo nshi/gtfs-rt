@@ -40,6 +40,12 @@ public class InsertPosition extends VoltProcedure {
     private static final SimpleDateFormat dateFormat =
         new SimpleDateFormat("yyyyMMdd");
 
+    public final SQLStmt getTripSQL =
+        new SQLStmt("SELECT COUNT(*) FROM trips WHERE trip_id = ?;");
+
+    public final SQLStmt getLastSQL =
+        new SQLStmt("SELECT COUNT(*) FROM vehicle_positions WHERE trip_id = ? AND timestamp >= ?;");
+
     public final SQLStmt insertSQL =
         new SQLStmt("INSERT INTO vehicle_positions VALUES (?, ?, ?, ?, ?, ?, ?);");
 
@@ -49,9 +55,9 @@ public class InsertPosition extends VoltProcedure {
     /**
      * @param history the number of seconds of history to keep in the database
      */
-    public VoltTable[] run(String trip_id, String start_date, byte relationship,
-                           double lat, double lon, int stop, long ts,
-                           long history)
+    public long run(String trip_id, String start_date, byte relationship,
+                    double lat, double lon, int stop, long ts,
+                    long history)
             throws ParseException {
         long currentTime = getTransactionTime().getTime();
         // Entries before this timestamp will be deleted
@@ -62,8 +68,24 @@ public class InsertPosition extends VoltProcedure {
         long tsInMillis = ts * 1000 * 1000;
 
         voltQueueSQL(deleteOldSQL, trip_id, expiration);
+        voltQueueSQL(getLastSQL, trip_id, tsInMillis);
+        voltQueueSQL(getTripSQL, trip_id);
+        VoltTable[] result = voltExecuteSQL();
+        long newerRecords = result[1].asScalarLong();
+        long tripCount = result[2].asScalarLong();
+
+        if (newerRecords > 0) {
+            // There are newer records for this trip, drop this one
+            return 0;
+        }
+        if (tripCount != 1) {
+            // No such trip, drop this record
+            return 0;
+        }
+
         voltQueueSQL(insertSQL, trip_id, start, tsInMillis, stop, relationship,
                      lat, lon);
-        return voltExecuteSQL();
+        voltExecuteSQL();
+        return 1;
     }
 }
