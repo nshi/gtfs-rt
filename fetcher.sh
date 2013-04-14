@@ -41,7 +41,7 @@ function fetch() {
         FILEPATH="$1/$FILENAME"
         if [ ! -f $FILEPATH ]
         then
-            echo wget -O $FILEPATH $URL
+            wget -O $FILEPATH $URL
 
             # load $FILEPATH
         fi
