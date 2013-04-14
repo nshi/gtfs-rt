@@ -15,11 +15,10 @@ this="$(pwd -P)"
 popd > /dev/null
 
 URL="http://developer.mbta.com/lib/gtrtfs/Vehicles.pb"
-NOW=`date +"%Y%m%d-%H%M%S"`
-FILENAME="mbta-vehicles-$NOW.pb"
 
 function help() {
-    echo "Usage: ./fetcher.sh output_dir"
+    echo "Usage: ./fetcher.sh output_dir [interval]"
+    echo "    Poll the data every interval seconds, this runs until ctrl-c is pressed."
 }
 
 # call ./run.sh loadrt filename to load the data into database
@@ -31,13 +30,24 @@ function load() {
 
 # download the current vehicle positions to file
 function fetch() {
+    INTERVAL=10                 # default to every 10 seconds
     if [ $# -eq 0 ]; then help && exit; fi
+    if [ $# -eq 2 ]; then INTERVAL=$2; fi
 
-    FILEPATH="$1/$FILENAME"
-    if [ -f $FILEPATH ]; then exit; fi
-    wget -O $FILEPATH $URL
+    while true
+    do
+        NOW=`date +"%Y%m%d-%H%M%S"`
+        FILENAME="mbta-vehicles-$NOW.pb"
+        FILEPATH="$1/$FILENAME"
+        if [ ! -f $FILEPATH ]
+        then
+            echo wget -O $FILEPATH $URL
 
-    # load $FILEPATH
+            # load $FILEPATH
+        fi
+
+        sleep $INTERVAL
+    done
 }
 
 if [ $# -ge 1 ]; then fetch "$@"; else help; fi
