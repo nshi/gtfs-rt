@@ -1,12 +1,13 @@
 CREATE TABLE vehicle_positions
 (
-  trip_id      varchar(40) NOT NULL,
-  start_date   timestamp   NOT NULL,
-  timestamp    timestamp   NOT NULL,
-  stop         integer     DEFAULT 0,
-  relationship tinyint     NOT NULL,
-  latitude     float       NOT NULL,
-  longitude    float       NOT NULL,
+  trip_id       varchar(40) NOT NULL,
+  start_date    timestamp   NOT NULL,
+  timestamp     timestamp   NOT NULL,
+  stop_sequence integer     DEFAULT 0,
+  stop_id       varchar(32) DEFAULT 0,
+  relationship  tinyint     NOT NULL,
+  latitude      float       NOT NULL,
+  longitude     float       NOT NULL,
 
   PRIMARY KEY
   (

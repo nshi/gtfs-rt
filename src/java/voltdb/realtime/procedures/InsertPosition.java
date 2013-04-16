@@ -47,7 +47,7 @@ public class InsertPosition extends VoltProcedure {
         new SQLStmt("SELECT COUNT(*) FROM vehicle_positions WHERE trip_id = ? AND timestamp >= ?;");
 
     public final SQLStmt insertSQL =
-        new SQLStmt("INSERT INTO vehicle_positions VALUES (?, ?, ?, ?, ?, ?, ?);");
+        new SQLStmt("INSERT INTO vehicle_positions VALUES (?, ?, ?, ?, ?, ?, ?, ?);");
 
     public final SQLStmt deleteOldSQL =
         new SQLStmt("DELETE FROM vehicle_positions WHERE trip_id = ? AND timestamp < ?;");
@@ -56,8 +56,8 @@ public class InsertPosition extends VoltProcedure {
      * @param history the number of seconds of history to keep in the database
      */
     public long run(String trip_id, String start_date, byte relationship,
-                    double lat, double lon, int stop, long ts,
-                    long history)
+                    double lat, double lon, int stop_sequence, String stop_id,
+                    long ts, long history)
             throws ParseException {
         long currentTime = getTransactionTime().getTime();
         // Entries before this timestamp will be deleted
@@ -83,8 +83,8 @@ public class InsertPosition extends VoltProcedure {
             return 0;
         }
 
-        voltQueueSQL(insertSQL, trip_id, start, tsInMillis, stop, relationship,
-                     lat, lon);
+        voltQueueSQL(insertSQL, trip_id, start, tsInMillis, stop_sequence,
+                     stop_id, relationship, lat, lon);
         voltExecuteSQL();
         return 1;
     }
