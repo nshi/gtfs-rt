@@ -73,45 +73,63 @@ public class Loader {
         client.close();
     }
 
-    public static void loadFile(String path, Client client)
+    private static void loadFile(String path, Client client)
     {
         System.out.println("Loading " + path);
 
         try {
-            FileInputStream fin = new FileInputStream(path);
-            CodedInputStream in = CodedInputStream.newInstance(fin);
-            GtfsRealtime.FeedMessage.Builder b = GtfsRealtime.FeedMessage.newBuilder();
-            b.mergeFrom(in, null);
-            fin.close();
-
-            GtfsRealtime.FeedMessage feed = b.build();
+            GtfsRealtime.FeedMessage feed = parseFeed(path);
             List<GtfsRealtime.FeedEntity> entities = feed.getEntityList();
             for (GtfsRealtime.FeedEntity entity : entities) {
-                GtfsRealtime.VehiclePosition vehicle = entity.getVehicle();
-                if (vehicle.hasTrip()) {
-                    GtfsRealtime.TripDescriptor trip = vehicle.getTrip();
-                    GtfsRealtime.Position position = vehicle.getPosition();
-                    try {
-                        client.callProcedure("InsertPosition",
-                                             trip.getTripId(),
-                                             trip.getStartDate(),
-                                             trip.getScheduleRelationship().getNumber(),
-                                             position.getLatitude(),
-                                             position.getLongitude(),
-                                             vehicle.getCurrentStopSequence(),
-                                             vehicle.getTimestamp(),
-                                             HISTORY);
-                    } catch (ProcCallException e) {
-                        System.err.println(e);
-                        System.err.println(vehicle.toString());
-                        break;
+                try {
+                    if (entity.hasVehicle()) {
+                        insertPosition(entity.getVehicle(), client);
+                    } else if (entity.hasTripUpdate()) {
+                        // Handle trip updates here
                     }
-                } else {
-                    // Skip entries with no trip ID set
+                } catch (ProcCallException e) {
+                    System.err.println(e);
+                    break;
                 }
             }
         } catch (Throwable t) {
             System.err.println(t);
         }
+    }
+
+    private static void insertPosition(GtfsRealtime.VehiclePosition vehicle, Client client)
+    throws IOException, ProcCallException {
+        if (vehicle.hasTrip()) {
+            GtfsRealtime.TripDescriptor trip = vehicle.getTrip();
+            GtfsRealtime.Position position = vehicle.getPosition();
+            try {
+                client.callProcedure("InsertPosition",
+                                     trip.getTripId(),
+                                     trip.getStartDate(),
+                                     trip.getScheduleRelationship().getNumber(),
+                                     position.getLatitude(),
+                                     position.getLongitude(),
+                                     vehicle.getCurrentStopSequence(),
+                                     vehicle.getTimestamp(),
+                                     HISTORY);
+            } catch (ProcCallException e) {
+                System.err.println(vehicle.toString());
+                throw e;
+            }
+        } else {
+            // Skip entries with no trip ID set
+        }
+    }
+
+    private static GtfsRealtime.FeedMessage parseFeed(String path) throws IOException
+    {
+        FileInputStream fin = new FileInputStream(path);
+        CodedInputStream in = CodedInputStream.newInstance(fin);
+        GtfsRealtime.FeedMessage.Builder b = GtfsRealtime.FeedMessage.newBuilder();
+
+        b.mergeFrom(in, null);
+        fin.close();
+
+        return b.build();
     }
 }
