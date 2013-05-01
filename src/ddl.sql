@@ -4,7 +4,6 @@ CREATE TABLE vehicle_positions
   start_date    timestamp   NOT NULL,
   timestamp     timestamp   NOT NULL,
   stop_sequence integer     DEFAULT 0,
-  stop_id       varchar(32) DEFAULT 0,
   relationship  tinyint     NOT NULL,
   latitude      float       NOT NULL,
   longitude     float       NOT NULL,
@@ -52,6 +51,8 @@ CREATE TABLE trips
     trip_id
   )
 );
+
+PARTITION TABLE trips ON COLUMN trip_id;
 
 CREATE TABLE calendar
 (
