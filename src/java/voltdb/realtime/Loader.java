@@ -30,55 +30,88 @@ import org.voltdb.client.ClientConfig;
 import org.voltdb.client.ClientFactory;
 import org.voltdb.client.ProcCallException;
 
+import java.io.File;
 import java.io.FileInputStream;
+import java.io.FilenameFilter;
 import java.io.IOException;
 import java.util.List;
 
 public class Loader {
     // Duration of vehicle positions to keep in the database
-    private static final long HISTORY = 7 * 24 * 3600 * 1000; // 1 week in milliseconds
+    private static final long HISTORY = 30 * 24 * 3600 * 1000; // 1 month in milliseconds
 
-    public static void main(String[] args) throws IOException, ProcCallException, InterruptedException {
+    private static final FilenameFilter positionFileFilter = new FilenameFilter() {
+        @Override
+        public boolean accept(File file, String s) {
+            if (s.contains("vehicle")) {
+                return true;
+            } else {
+                return false;
+            }
+        }
+    };
+
+    public static void main(String[] args) throws IOException, InterruptedException {
         if (args.length != 1) {
             System.exit(-1);
         }
 
-        FileInputStream fin = new FileInputStream(args[0]);
-        CodedInputStream in = CodedInputStream.newInstance(fin);
-        GtfsRealtime.FeedMessage.Builder b = GtfsRealtime.FeedMessage.newBuilder();
-        b.mergeFrom(in, null);
-        fin.close();
-
         Client client = ClientFactory.createClient(new ClientConfig());
         client.createConnection("localhost");
 
-        GtfsRealtime.FeedMessage feed = b.build();
-        List<GtfsRealtime.FeedEntity> entities = feed.getEntityList();
-        for (GtfsRealtime.FeedEntity entity : entities) {
-            GtfsRealtime.VehiclePosition vehicle = entity.getVehicle();
-            if (vehicle.hasTrip()) {
-                GtfsRealtime.TripDescriptor trip = vehicle.getTrip();
-                GtfsRealtime.Position position = vehicle.getPosition();
-                try {
-                    client.callProcedure("InsertPosition",
-                                         trip.getTripId(),
-                                         trip.getStartDate(),
-                                         trip.getScheduleRelationship().getNumber(),
-                                         position.getLatitude(),
-                                         position.getLongitude(),
-                                         vehicle.getCurrentStopSequence(),
-                                         vehicle.getTimestamp(),
-                                         HISTORY);
-                } catch (ProcCallException e) {
-                    System.err.println(e);
-                    System.err.println(vehicle.toString());
-                    break;
-                }
-            } else {
-                // Skip entries with no trip ID set
+        File path = new File(args[0]);
+
+        if (path.isDirectory()) {
+            System.out.println("Loading files from directory " + path);
+            for (File file : path.listFiles(positionFileFilter)) {
+                loadFile(file.getAbsolutePath(), client);
             }
+        } else if (path.isFile()) {
+            loadFile(path.getAbsolutePath(), client);
         }
 
         client.close();
+    }
+
+    public static void loadFile(String path, Client client)
+    {
+        System.out.println("Loading " + path);
+
+        try {
+            FileInputStream fin = new FileInputStream(path);
+            CodedInputStream in = CodedInputStream.newInstance(fin);
+            GtfsRealtime.FeedMessage.Builder b = GtfsRealtime.FeedMessage.newBuilder();
+            b.mergeFrom(in, null);
+            fin.close();
+
+            GtfsRealtime.FeedMessage feed = b.build();
+            List<GtfsRealtime.FeedEntity> entities = feed.getEntityList();
+            for (GtfsRealtime.FeedEntity entity : entities) {
+                GtfsRealtime.VehiclePosition vehicle = entity.getVehicle();
+                if (vehicle.hasTrip()) {
+                    GtfsRealtime.TripDescriptor trip = vehicle.getTrip();
+                    GtfsRealtime.Position position = vehicle.getPosition();
+                    try {
+                        client.callProcedure("InsertPosition",
+                                             trip.getTripId(),
+                                             trip.getStartDate(),
+                                             trip.getScheduleRelationship().getNumber(),
+                                             position.getLatitude(),
+                                             position.getLongitude(),
+                                             vehicle.getCurrentStopSequence(),
+                                             vehicle.getTimestamp(),
+                                             HISTORY);
+                    } catch (ProcCallException e) {
+                        System.err.println(e);
+                        System.err.println(vehicle.toString());
+                        break;
+                    }
+                } else {
+                    // Skip entries with no trip ID set
+                }
+            }
+        } catch (Throwable t) {
+            System.err.println(t);
+        }
     }
 }
