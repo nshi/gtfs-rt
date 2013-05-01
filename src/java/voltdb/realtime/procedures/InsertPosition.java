@@ -46,8 +46,11 @@ public class InsertPosition extends VoltProcedure {
     public final SQLStmt getLastSQL =
         new SQLStmt("SELECT COUNT(*) FROM vehicle_positions WHERE trip_id = ? AND timestamp >= ?;");
 
+    public final SQLStmt getStopSQL =
+        new SQLStmt("SELECT COUNT(*) FROM stop_times WHERE trip_id = ? AND stop_sequence = ?;");
+
     public final SQLStmt insertSQL =
-        new SQLStmt("INSERT INTO vehicle_positions VALUES (?, ?, ?, ?, ?, ?, ?, ?);");
+        new SQLStmt("INSERT INTO vehicle_positions VALUES (?, ?, ?, ?, ?, ?, ?);");
 
     public final SQLStmt deleteOldSQL =
         new SQLStmt("DELETE FROM vehicle_positions WHERE trip_id = ? AND timestamp < ?;");
@@ -56,7 +59,7 @@ public class InsertPosition extends VoltProcedure {
      * @param history the number of seconds of history to keep in the database
      */
     public long run(String trip_id, String start_date, byte relationship,
-                    double lat, double lon, int stop_sequence, String stop_id,
+                    double lat, double lon, int stop_sequence,
                     long ts, long history)
             throws ParseException {
         long currentTime = getTransactionTime().getTime();
@@ -70,9 +73,11 @@ public class InsertPosition extends VoltProcedure {
         voltQueueSQL(deleteOldSQL, trip_id, expiration);
         voltQueueSQL(getLastSQL, trip_id, tsInMillis);
         voltQueueSQL(getTripSQL, trip_id);
+        voltQueueSQL(getStopSQL, trip_id, stop_sequence);
         VoltTable[] result = voltExecuteSQL();
         long newerRecords = result[1].asScalarLong();
         long tripCount = result[2].asScalarLong();
+        long stopCount = result[3].asScalarLong();
 
         if (newerRecords > 0) {
             // There are newer records for this trip, drop this one
@@ -82,9 +87,13 @@ public class InsertPosition extends VoltProcedure {
             // No such trip, drop this record
             return 0;
         }
+        if (stopCount != 1) {
+            // No such stop, drop this record
+            return 0;
+        }
 
         voltQueueSQL(insertSQL, trip_id, start, tsInMillis, stop_sequence,
-                     stop_id, relationship, lat, lon);
+                     relationship, lat, lon);
         voltExecuteSQL();
         return 1;
     }
