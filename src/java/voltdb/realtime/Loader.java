@@ -38,7 +38,7 @@ import java.util.List;
 
 public class Loader {
     // Duration of vehicle positions to keep in the database
-    private static final long HISTORY = 30 * 24 * 3600 * 1000; // 1 month in milliseconds
+    private static final long HISTORY = 30l * 24l * 3600l * 1000l; // 1 month in milliseconds
 
     private static final FilenameFilter positionFileFilter = new FilenameFilter() {
         @Override
