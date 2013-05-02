@@ -3,7 +3,7 @@ CREATE TABLE vehicle_positions
   trip_id       varchar(40) NOT NULL,
   start_date    timestamp   NOT NULL,
   timestamp     timestamp   NOT NULL,
-  stop_sequence integer     DEFAULT 0,
+  stop_sequence integer     NOT NULL,
   relationship  tinyint     NOT NULL,
   latitude      float       NOT NULL,
   longitude     float       NOT NULL,
@@ -15,6 +15,23 @@ CREATE TABLE vehicle_positions
 );
 
 PARTITION TABLE vehicle_positions ON COLUMN trip_id;
+
+CREATE TABLE trip_updates
+(
+  trip_id       varchar(40) NOT NULL,
+  start_date    timestamp   NOT NULL,
+  timestamp     timestamp   NOT NULL,
+  relationship  tinyint     NOT NULL,
+  stop_sequence integer     NOT NULL,
+  delay         bigint      NOT NULL,
+
+  PRIMARY KEY
+  (
+    trip_id, timestamp
+  )
+);
+
+PARTITION TABLE trip_updates ON COLUMN trip_id;
 
 -- The following are GTFS tables
 
@@ -132,3 +149,4 @@ CREATE PROCEDURE FROM CLASS voltdb.gtfs.procedures.InsertStops;
 CREATE PROCEDURE FROM CLASS voltdb.gtfs.procedures.InsertStopTimes;
 
 CREATE PROCEDURE FROM CLASS voltdb.realtime.procedures.InsertPosition;
+CREATE PROCEDURE FROM CLASS voltdb.realtime.procedures.InsertUpdate;
