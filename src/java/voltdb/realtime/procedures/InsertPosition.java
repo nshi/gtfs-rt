@@ -68,10 +68,10 @@ public class InsertPosition extends VoltProcedure {
 
         Date start = dateFormat.parse(start_date);
         // Convert timestamp from seconds to micros
-        long tsInMillis = ts * 1000 * 1000;
+        long tsInMicros = ts * 1000 * 1000;
 
         voltQueueSQL(deleteOldSQL, trip_id, expiration);
-        voltQueueSQL(getLastSQL, trip_id, tsInMillis);
+        voltQueueSQL(getLastSQL, trip_id, tsInMicros);
         voltQueueSQL(getTripSQL, trip_id);
         voltQueueSQL(getStopSQL, trip_id, stop_sequence);
         VoltTable[] result = voltExecuteSQL();
@@ -92,7 +92,7 @@ public class InsertPosition extends VoltProcedure {
             return 0;
         }
 
-        voltQueueSQL(insertSQL, trip_id, start, tsInMillis, stop_sequence,
+        voltQueueSQL(insertSQL, trip_id, start, tsInMicros, stop_sequence,
                      relationship, lat, lon);
         voltExecuteSQL();
         return 1;
