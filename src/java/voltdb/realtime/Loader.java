@@ -79,13 +79,14 @@ public class Loader {
 
         try {
             GtfsRealtime.FeedMessage feed = parseFeed(path);
+            long ts = feed.getHeader().getTimestamp();
             List<GtfsRealtime.FeedEntity> entities = feed.getEntityList();
             for (GtfsRealtime.FeedEntity entity : entities) {
                 try {
                     if (entity.hasVehicle()) {
                         insertPosition(entity.getVehicle(), client);
                     } else if (entity.hasTripUpdate()) {
-                        // Handle trip updates here
+                        insertUpdate(entity.getTripUpdate(), ts, client);
                     }
                 } catch (ProcCallException e) {
                     System.err.println(e);
@@ -114,6 +115,31 @@ public class Loader {
                                      HISTORY);
             } catch (ProcCallException e) {
                 System.err.println(vehicle.toString());
+                throw e;
+            }
+        } else {
+            // Skip entries with no trip ID set
+        }
+    }
+
+    private static void insertUpdate(GtfsRealtime.TripUpdate update, long ts, Client client)
+    throws IOException, ProcCallException {
+        if (update.hasTrip()) {
+            GtfsRealtime.TripDescriptor trip = update.getTrip();
+            List<GtfsRealtime.TripUpdate.StopTimeUpdate> updates = update.getStopTimeUpdateList();
+            try {
+                for (GtfsRealtime.TripUpdate.StopTimeUpdate stopTimeUpdate : updates) {
+                    client.callProcedure("InsertUpdate",
+                                         trip.getTripId(),
+                                         trip.getStartDate(),
+                                         ts,
+                                         trip.getScheduleRelationship().getNumber(),
+                                         stopTimeUpdate.getStopSequence(),
+                                         stopTimeUpdate.getArrival().getDelay(),
+                                         HISTORY);
+                }
+            } catch (ProcCallException e) {
+                System.err.println(update.toString());
                 throw e;
             }
         } else {
