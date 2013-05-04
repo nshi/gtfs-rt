@@ -63,7 +63,7 @@ function fetch() {
 # $2 is interval
 # $3 is hostname:port
 function fetch_all() {
-    INTERVAL=10                 # default to every 10 seconds
+    INTERVAL=30                 # default to every 30 seconds
     if [ $# -ge 2 ]; then INTERVAL=$2; fi
 
     SERVER="localhost"
