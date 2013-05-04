@@ -23,6 +23,7 @@
 
 package voltdb.realtime;
 
+import com.google.common.net.HostAndPort;
 import com.google.protobuf.CodedInputStream;
 import com.google.transit.realtime.GtfsRealtime;
 import org.voltdb.client.Client;
@@ -52,12 +53,15 @@ public class Loader {
     };
 
     public static void main(String[] args) throws IOException, InterruptedException {
-        if (args.length != 1) {
+        if (args.length != 2) {
             System.exit(-1);
         }
 
+        String hostname = HostAndPort.fromString(args[1]).getHostText();
+        int port = HostAndPort.fromString(args[1]).getPortOrDefault(21212);
+
         Client client = ClientFactory.createClient(new ClientConfig());
-        client.createConnection("localhost");
+        client.createConnection(hostname, port);
 
         File path = new File(args[0]);
 

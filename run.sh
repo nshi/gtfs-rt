@@ -75,11 +75,13 @@ function loadgtfs() {
 
 # load realtime feeds
 function loadrt() {
-    if [ $# -eq 0 ]; then echo "loadrt FILENAME" && exit; fi
-    echo Loading "$1"
+    if [ $# -eq 0 ]; then echo "loadrt FILENAME [SERVER:PORT]" && exit; fi
+    SERVER="localhost"
+    if [ $# -eq 2 ]; then SERVER=$2; fi
+    echo Loading "$1" into $SERVER
     # run the loader
     java -classpath obj:$APPCLASSPATH:obj -Dlog4j.configuration=file://$LOG4J \
-        voltdb.realtime.Loader "$1"
+        voltdb.realtime.Loader "$1" $SERVER
 }
 
 function help() {

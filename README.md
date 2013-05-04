@@ -34,6 +34,13 @@ The realtime feed can be either vehicle positions or trip updates. So far, I
 have only tested with feeds from
 [MBTA](http://www.mbta.com/rider_tools/developers/default.asp?id=22393)
 
+If the server is running on a different machine or on a non-standard VoltDB
+port, you can specify the hostname:port of the server machine after the feed
+path like this
+```bash
+./run.sh loadrt data/mbta localhost:31313
+```
+
 How to fetch more data
 =====
 
