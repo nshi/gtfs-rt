@@ -37,8 +37,7 @@ import java.util.Date;
     singlePartition = true
 )
 public class InsertPosition extends VoltProcedure {
-    private static final SimpleDateFormat dateFormat =
-        new SimpleDateFormat("yyyyMMdd");
+    private final SimpleDateFormat dateFormat = new SimpleDateFormat("yyyyMMdd");
 
     public final SQLStmt getTripSQL =
         new SQLStmt("SELECT COUNT(*) FROM trips WHERE trip_id = ?;");

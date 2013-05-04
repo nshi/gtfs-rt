@@ -40,8 +40,7 @@ public class InsertCalendar extends VoltProcedure {
     public static final byte SAT  = 1 << 5;
     public static final byte SUN  = 1 << 6;
 
-    private static final SimpleDateFormat dateFormat =
-        new SimpleDateFormat("yyyyMMdd");
+    private final SimpleDateFormat dateFormat = new SimpleDateFormat("yyyyMMdd");
 
     public final SQLStmt insertSQL =
         new SQLStmt("INSERT INTO calendar VALUES (?, ?, ?, ?);");

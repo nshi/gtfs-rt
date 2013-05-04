@@ -32,8 +32,7 @@ import java.text.SimpleDateFormat;
 import java.util.Date;
 
 public class InsertCalendarDates extends VoltProcedure {
-    private static final SimpleDateFormat dateFormat =
-        new SimpleDateFormat("yyyyMMdd");
+    private final SimpleDateFormat dateFormat = new SimpleDateFormat("yyyyMMdd");
 
     public final SQLStmt insertSQL =
         new SQLStmt("INSERT INTO calendar_dates VALUES (?, ?, ?);");
