@@ -45,3 +45,43 @@ sub-directory every 30 seconds,
 ```bash
 ./fetcher.sh data/mbta 30
 ```
+
+How to download pre-collected data
+=====
+
+We have collected some data since April 14 2013 in case you want to play with
+them. The data is stored in a S3 bucket. The total size is a little bit less
+than 2GB compressed. To download all of them, use the following command.
+```bash
+wget --recursive --no-clobber http://gtfs-rt-data.s3-website-us-east-1.amazonaws.com/
+```
+
+This command will download all the files into a directory called
+"gtfs-rt-data.s3-website-us-east-1.amazonaws.com" under your current working
+directory.
+
+The content of this directory should look like this
+```bash
+index.html
+positions/
+updates/
+```
+
+You can ignore the index.html file. The positions/ directory contains tarballs
+of vehicle positions updates. The updates/ directory contains tarballs contains
+trip updates.
+
+To unpack all updates, do the following
+```bash
+tar xzf positions/*
+tar xzf updates/*
+```
+
+The unpacked version is quite large, around 8GB. So make sure you have enough
+free space before unpacking them.
+
+Once unpacked, the directories are named by dates. You can load them in order by
+passing each dated directory to the run.sh script. For example,
+```bash
+./run.sh positions/20130416
+```
