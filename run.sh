@@ -65,12 +65,15 @@ function server() {
 }
 
 function loadgtfs() {
-    $CSVLOADER --skip 1 -f data/mbta/gtfs/routes.txt routes
-    $CSVLOADER --skip 1 -f data/mbta/gtfs/trips.txt trips
-    $CSVLOADER --skip 1 -f data/mbta/gtfs/calendar.txt -p InsertCalendar
-    $CSVLOADER --skip 1 -f data/mbta/gtfs/calendar_dates.txt -p InsertCalendarDates
-    $CSVLOADER --skip 1 -f data/mbta/gtfs/stops.txt -p InsertStops
-    $CSVLOADER --skip 1 -f data/mbta/gtfs/stop_times.txt -p InsertStopTimes
+    SERVER="localhost"
+    if [ $# -eq 1 ]; then SERVER=$1; fi
+
+    $CSVLOADER --skip 1 -s $SERVER -f data/mbta/gtfs/routes.txt routes
+    $CSVLOADER --skip 1 -s $SERVER -f data/mbta/gtfs/trips.txt trips
+    $CSVLOADER --skip 1 -s $SERVER -f data/mbta/gtfs/calendar.txt -p InsertCalendar
+    $CSVLOADER --skip 1 -s $SERVER -f data/mbta/gtfs/calendar_dates.txt -p InsertCalendarDates
+    $CSVLOADER --skip 1 -s $SERVER -f data/mbta/gtfs/stops.txt -p InsertStops
+    $CSVLOADER --skip 1 -s $SERVER -f data/mbta/gtfs/stop_times.txt -p InsertStopTimes
 }
 
 # load realtime feeds
