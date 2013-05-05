@@ -92,3 +92,8 @@ passing each dated directory to the run.sh script. For example,
 ```bash
 ./run.sh positions/20130416
 ```
+
+API
+=====
+
+For detailed information about stored procedures, please refer to the [API doc](https://github.com/nshi/gtfs-rt/wiki/API).
