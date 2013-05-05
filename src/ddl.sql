@@ -162,3 +162,4 @@ CREATE PROCEDURE FROM CLASS voltdb.realtime.procedures.InsertPosition;
 CREATE PROCEDURE FROM CLASS voltdb.realtime.procedures.InsertUpdate;
 
 CREATE PROCEDURE FROM CLASS voltdb.realtime.procedures.GetLatestSchedule;
+CREATE PROCEDURE FROM CLASS voltdb.realtime.procedures.GetAvgStopDelays;
