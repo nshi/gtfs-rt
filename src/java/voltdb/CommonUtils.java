@@ -23,6 +23,8 @@
 
 package voltdb;
 
+import org.voltdb.VoltTable;
+
 import java.text.SimpleDateFormat;
 import java.util.TimeZone;
 
@@ -50,5 +52,15 @@ public class CommonUtils {
     public static SimpleDateFormat getDateFormat()
     {
         return getDateFormatInTimeZone("yyyyMMdd", "America/New_York");
+    }
+
+    public static VoltTable createTableFromTemplate(VoltTable template)
+    {
+        VoltTable.ColumnInfo[] columns = new VoltTable.ColumnInfo[template.getColumnCount()];
+        for (int i = 0; i < template.getColumnCount(); i++) {
+            columns[i] = new VoltTable.ColumnInfo(template.getColumnName(i),
+                                                  template.getColumnType(i));
+        }
+        return new VoltTable(columns);
     }
 }

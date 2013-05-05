@@ -29,11 +29,27 @@ CREATE TABLE trip_updates
 
   PRIMARY KEY
   (
-    trip_id, timestamp
+    trip_id, stop_sequence, timestamp
   )
 );
 
 PARTITION TABLE trip_updates ON COLUMN trip_id;
+
+-- Sum up delays for a given stop of a trip, used to calculate average delays
+CREATE VIEW v_trip_updates_delay_by_stop
+(
+  trip_id,
+  stop_sequence,
+  num_delays,
+  total_delay
+)
+AS
+SELECT trip_id,
+       stop_sequence,
+       COUNT(*),
+       SUM(delay)
+FROM trip_updates
+GROUP BY trip_id, stop_sequence;
 
 -- The following are GTFS tables
 
@@ -136,14 +152,6 @@ CREATE TABLE stop_times
 
 PARTITION TABLE stop_times ON COLUMN trip_id;
 
-CREATE INDEX stop_times_id_idx
-ON stop_times
-(
-  trip_id,
-  stop_id,
-  stop_sequence
-);
-
 -- Stored procedures
 CREATE PROCEDURE FROM CLASS voltdb.gtfs.procedures.InsertCalendar;
 CREATE PROCEDURE FROM CLASS voltdb.gtfs.procedures.InsertCalendarDates;
@@ -152,3 +160,5 @@ CREATE PROCEDURE FROM CLASS voltdb.gtfs.procedures.InsertStopTimes;
 
 CREATE PROCEDURE FROM CLASS voltdb.realtime.procedures.InsertPosition;
 CREATE PROCEDURE FROM CLASS voltdb.realtime.procedures.InsertUpdate;
+
+CREATE PROCEDURE FROM CLASS voltdb.realtime.procedures.GetLatestSchedule;
