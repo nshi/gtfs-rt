@@ -27,6 +27,7 @@ import org.voltdb.ProcInfo;
 import org.voltdb.SQLStmt;
 import org.voltdb.VoltProcedure;
 import org.voltdb.VoltTable;
+import voltdb.CommonUtils;
 
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
@@ -37,8 +38,7 @@ import java.util.Date;
     singlePartition = true
 )
 public class InsertStopTimes extends VoltProcedure {
-    private final SimpleDateFormat dateFormat =
-        new SimpleDateFormat("HH:mm:ss");
+    private final SimpleDateFormat dateFormat = CommonUtils.getTimeFormat();
 
     public final SQLStmt insertSQL =
         new SQLStmt("INSERT INTO stop_times VALUES (?, ?, ?, ?, ?, ?, ?, ?);");

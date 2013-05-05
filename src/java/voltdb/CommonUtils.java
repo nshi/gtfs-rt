@@ -21,28 +21,34 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  */
 
-package voltdb.gtfs.procedures;
+package voltdb;
 
-import org.voltdb.SQLStmt;
-import org.voltdb.VoltProcedure;
-import org.voltdb.VoltTable;
-import voltdb.CommonUtils;
-
-import java.text.ParseException;
 import java.text.SimpleDateFormat;
-import java.util.Date;
+import java.util.TimeZone;
 
-public class InsertCalendarDates extends VoltProcedure {
-    private final SimpleDateFormat dateFormat = CommonUtils.getDateFormat();
+public class CommonUtils {
+    private static SimpleDateFormat getDateFormatInTimeZone(String format, String timezone)
+    {
+        final SimpleDateFormat dateFormat = new SimpleDateFormat(format);
+        dateFormat.setTimeZone(TimeZone.getTimeZone(timezone));
+        return dateFormat;
+    }
 
-    public final SQLStmt insertSQL =
-        new SQLStmt("INSERT INTO calendar_dates VALUES (?, ?, ?);");
+    /**
+     * Create a SimpleDateFormat that parses time in the format "HH:mm:ss" in
+     * Eastern Time.
+     */
+    public static SimpleDateFormat getTimeFormat()
+    {
+        return getDateFormatInTimeZone("HH:mm:ss", "America/New_York");
+    }
 
-    public VoltTable[] run(String service_id, String dateStr, byte exception_type)
-        throws ParseException {
-        Date date = dateFormat.parse(dateStr);
-
-        voltQueueSQL(insertSQL, service_id, date, exception_type);
-        return voltExecuteSQL();
+    /**
+     * Create a SimpleDateFormat that parses date in the format "yyyyMMdd" in
+     * Eastern Time.
+     */
+    public static SimpleDateFormat getDateFormat()
+    {
+        return getDateFormatInTimeZone("yyyyMMdd", "America/New_York");
     }
 }

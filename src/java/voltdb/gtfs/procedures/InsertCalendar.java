@@ -26,6 +26,7 @@ package voltdb.gtfs.procedures;
 import org.voltdb.SQLStmt;
 import org.voltdb.VoltProcedure;
 import org.voltdb.VoltTable;
+import voltdb.CommonUtils;
 
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
@@ -40,7 +41,7 @@ public class InsertCalendar extends VoltProcedure {
     public static final byte SAT  = 1 << 5;
     public static final byte SUN  = 1 << 6;
 
-    private final SimpleDateFormat dateFormat = new SimpleDateFormat("yyyyMMdd");
+    private final SimpleDateFormat dateFormat = CommonUtils.getDateFormat();
 
     public final SQLStmt insertSQL =
         new SQLStmt("INSERT INTO calendar VALUES (?, ?, ?, ?);");

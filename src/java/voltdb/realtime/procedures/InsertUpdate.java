@@ -27,6 +27,7 @@ import org.voltdb.ProcInfo;
 import org.voltdb.SQLStmt;
 import org.voltdb.VoltProcedure;
 import org.voltdb.VoltTable;
+import voltdb.CommonUtils;
 
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
@@ -37,7 +38,7 @@ import java.util.Date;
     singlePartition = true
 )
 public class InsertUpdate extends VoltProcedure {
-    private final SimpleDateFormat dateFormat = new SimpleDateFormat("yyyyMMdd");
+    private final SimpleDateFormat dateFormat = CommonUtils.getDateFormat();
 
     public final SQLStmt getTripSQL =
         new SQLStmt("SELECT COUNT(*) FROM trips WHERE trip_id = ?;");
