@@ -19,6 +19,7 @@ else
     VOLTDB_VOLTDB="`pwd`/../../voltdb"
 fi
 
+export CLASSPATH="obj"
 APPCLASSPATH=$CLASSPATH:$({ \
     \ls -1 "$VOLTDB_VOLTDB"/voltdb-*.jar; \
     \ls -1 "$VOLTDB_LIB"/*.jar; \
