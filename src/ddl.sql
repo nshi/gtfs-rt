@@ -1,3 +1,5 @@
+-- Note that all timestamp type columns in all tables are stored in GMT
+
 CREATE TABLE vehicle_positions
 (
   trip_id       varchar(40) NOT NULL,
