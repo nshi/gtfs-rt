@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Simple Map</title>
+    <meta name="viewport" content="initial-scale=1.0, user-scalable=no">
+    <meta charset="utf-8">
+    <link href="http://netdna.bootstrapcdn.com/twitter-bootstrap/2.3.2/css/bootstrap-combined.min.css" rel="stylesheet">
+    <style>
+      body {
+        padding-top: 40px;
+      }
+
+      html, body, .fill {
+        margin: 0;
+        width: 100%;
+        height: 100%;
+      }
+
+      html, body, #map-canvas {
+        width: 100%;
+        height: 90%;
+      }
+      html, body, #map-canvas img {
+        max-width: none;
+      }
+
+      html, body, .footer-container {
+      }
+    </style>
+  </head>
+  <body>
+    <div class="navbar navbar-inverse navbar-fixed-top">
+      <div class="navbar-inner">
+        <div class="container">
+          <button type="button" class="btn btn-navbar" data-toggle="collapse" data-target=".nav-collapse">
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+          </button>
+          <a class="brand" href="#">VoltDB GTFS-Realtime Notification</a>
+          <div class="nav-collapse collapse">
+            <ul class="nav">
+              <li class="active"><a href="#">Map</a></li>
+              <li><a href="#stats">Statistics</a></li>
+            </ul>
+          </div><!--/.nav-collapse -->
+        </div>
+      </div>
+    </div>
+
+    <div class="container fill">
+      <div id="map-canvas"></div>
+
+      <div class="footer-container">
+        <h1>Bootstrap starter template</h1>
+        <p>Use this document as a way to quick start any new project.<br> All
+        you get is this message and a barebones HTML document.</p>
+      </div>
+    </div> <!-- /container -->
+
+    <script src="https://maps.googleapis.com/maps/api/js?v=3&sensor=false"></script>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.0.0/jquery.min.js"></script>
+    <script src="https://netdna.bootstrapcdn.com/twitter-bootstrap/2.3.2/js/bootstrap.min.js"></script>
+    <script src="map.js"></script>
+  </body>
+</html>
