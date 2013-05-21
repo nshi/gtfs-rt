@@ -43,12 +43,6 @@ public class GetLatestSchedule extends VoltProcedure {
                     "WHERE trip_id = ? AND t.stop_id = s.stop_id " +
                     "ORDER BY arrival_time;");
 
-    public final SQLStmt getUpdatesSQL =
-        new SQLStmt("SELECT stop_sequence, delay " +
-                    "FROM trip_updates " +
-                    "WHERE trip_id = ? " +
-                    "ORDER BY stop_sequence;");
-
     /**
      * Given the trip_id, calculate the latest schedule based on the original
      * schedule, the latest trip updates and the latest vehicle position.
@@ -60,7 +54,6 @@ public class GetLatestSchedule extends VoltProcedure {
          */
 
         voltQueueSQL(getStopTimesSQL, trip_id);
-        voltQueueSQL(getUpdatesSQL, trip_id);
         VoltTable[] result = voltExecuteSQL();
 
         if (result[0].getRowCount() == 0) {
@@ -69,32 +62,15 @@ public class GetLatestSchedule extends VoltProcedure {
         }
 
         VoltTable schedule = CommonUtils.createTableFromTemplate(result[0]);
-        Map<Integer, Long> stopDelays = parseUpdates(result[1]);
 
         long currentDelay = 0;
         while (result[0].advanceRow()) {
             int stop_sequence = (int) result[0].getLong("stop_sequence");
-            if (stopDelays.containsKey(stop_sequence)) {
-                currentDelay = stopDelays.get(stop_sequence) * 1000000; // seconds to microseconds
-            }
-
             schedule.addRow(stop_sequence,
                             result[0].getString("stop_name"),
                             result[0].getTimestampAsLong("arrival_time") + currentDelay);
         }
 
         return schedule;
-    }
-
-    private static Map<Integer, Long> parseUpdates(VoltTable updates)
-    {
-        Map<Integer, Long> stopDelays = new HashMap<Integer, Long>();
-
-        while (updates.advanceRow()) {
-            stopDelays.put((int) updates.getLong("stop_sequence"),
-                           updates.getLong("delay"));
-        }
-
-        return stopDelays;
     }
 }
