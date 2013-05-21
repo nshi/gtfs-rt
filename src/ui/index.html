@@ -1,60 +1,68 @@
 <!DOCTYPE html>
 <html>
   <head>
-    <title>Simple Map</title>
+    <title>VoltDB Realtime Transit Notification</title>
     <meta name="viewport" content="initial-scale=1.0, user-scalable=no">
     <meta charset="utf-8">
     <link href="http://netdna.bootstrapcdn.com/twitter-bootstrap/2.3.2/css/bootstrap-combined.min.css" rel="stylesheet">
     <style>
-      body {
-        padding-top: 40px;
+      .container-fluid {
+        padding-right: 0;
       }
 
-      html, body, .fill {
+      .fill {
         margin: 0;
-        width: 100%;
         height: 100%;
       }
 
-      html, body, #map-canvas {
-        width: 100%;
-        height: 90%;
-      }
-      html, body, #map-canvas img {
-        max-width: none;
+      form {
+        margin-bottom: 0;
       }
 
-      html, body, .footer-container {
+      html, body, #map-canvas {
+        height: 100%;
+      }
+      #map-canvas img {
+        max-width: none;
       }
     </style>
   </head>
   <body>
-    <div class="navbar navbar-inverse navbar-fixed-top">
+    <div class="navbar navbar-inverse navbar-static-top">
       <div class="navbar-inner">
-        <div class="container">
-          <button type="button" class="btn btn-navbar" data-toggle="collapse" data-target=".nav-collapse">
-            <span class="icon-bar"></span>
-            <span class="icon-bar"></span>
-            <span class="icon-bar"></span>
-          </button>
-          <a class="brand" href="#">VoltDB GTFS-Realtime Notification</a>
-          <div class="nav-collapse collapse">
-            <ul class="nav">
-              <li class="active"><a href="#">Map</a></li>
-              <li><a href="#stats">Statistics</a></li>
-            </ul>
-          </div><!--/.nav-collapse -->
-        </div>
+        <a class="brand" href="#">VoltDB Realtime Transit Notification</a>
+        <div class="nav-collapse collapse">
+          <ul class="nav">
+            <li class="active"><a href="#">Map</a></li>
+            <li><a href="#stats">Statistics</a></li>
+          </ul>
+        </div><!--/.nav-collapse -->
       </div>
     </div>
 
-    <div class="container fill">
-      <div id="map-canvas"></div>
+    <div class="container-fluid fill">
+      <div class="row-fluid fill">
+        <div class="span2">
+          <h4>Available Buses</h4>
+          <p>Use the following table to subscribe to the available buses. You
+          will get notified by the specified number of minutes before the bus
+          arrives at the closest stop.</p>
 
-      <div class="footer-container">
-        <h1>Bootstrap starter template</h1>
-        <p>Use this document as a way to quick start any new project.<br> All
-        you get is this message and a barebones HTML document.</p>
+          <table id="routes" class="table table-striped">
+            <thead>
+              <tr>
+                <th>Route</th>
+                <th>Subscribe</th>
+              </tr>
+            </thead>
+            <tbody>
+            </tbody>
+          </table>
+
+          <div id="msg-pane"></div>
+        </div>
+
+        <div id="map-canvas" class="span10"></div>
       </div>
     </div> <!-- /container -->
 
