@@ -26,6 +26,8 @@ package voltdb;
 import org.voltdb.VoltTable;
 
 import java.text.SimpleDateFormat;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.TimeZone;
 
 public class CommonUtils {
@@ -63,4 +65,15 @@ public class CommonUtils {
         }
         return new VoltTable(columns);
     }
+
+    public static Map<Long, Long> parseIDMapFromTableColumns(VoltTable updates,
+                                                             int keyColumn, int valueColumn)
+    {
+        Map<Long, Long> map = new HashMap<Long, Long>();
+        while (updates.advanceRow()) {
+            map.put(updates.getLong(keyColumn), updates.getLong(valueColumn));
+        }
+        return map;
+    }
+
 }

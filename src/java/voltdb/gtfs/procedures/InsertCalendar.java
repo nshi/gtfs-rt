@@ -44,7 +44,7 @@ public class InsertCalendar extends VoltProcedure {
     private final SimpleDateFormat dateFormat = CommonUtils.getDateFormat();
 
     public final SQLStmt insertSQL =
-        new SQLStmt("INSERT INTO calendar VALUES (?, ?, ?, ?);");
+        new SQLStmt("INSERT INTO calendar VALUES (?, ?, ?, ?, ?, ?);");
 
     public VoltTable[] run(String service_id, byte mon, byte tue, byte wed,
                            byte thur, byte fri, byte sat, byte sun,
@@ -60,7 +60,7 @@ public class InsertCalendar extends VoltProcedure {
         Date start = dateFormat.parse(start_date);
         Date end = dateFormat.parse(end_date);
 
-        voltQueueSQL(insertSQL, service_id, weekdays, start, end);
+        voltQueueSQL(insertSQL, service_id, weekdays, start, end, start, end);
         return voltExecuteSQL();
     }
 }

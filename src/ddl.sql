@@ -4,7 +4,9 @@ CREATE TABLE vehicle_positions
 (
   trip_id       varchar(40) NOT NULL,
   start_date    timestamp   NOT NULL,
+  start_usec    bigint      NOT NULL, -- pseudo-date
   timestamp     timestamp   NOT NULL,
+  time_usec     bigint      NOT NULL, -- pseudo-timestamp
   stop_sequence integer     NOT NULL,
   relationship  tinyint     NOT NULL,
   latitude      float       NOT NULL,
@@ -22,36 +24,56 @@ CREATE TABLE trip_updates
 (
   trip_id       varchar(40) NOT NULL,
   start_date    timestamp   NOT NULL,
+  start_usec    bigint      NOT NULL, -- pseudo-date
   timestamp     timestamp   NOT NULL,
+  time_usec     bigint      NOT NULL, -- pseudo-timestamp
   relationship  tinyint     NOT NULL,
-  stop_sequence integer     NOT NULL,
-  delay         bigint      NOT NULL,
 
   PRIMARY KEY
   (
-    trip_id, stop_sequence, timestamp
+    trip_id, start_date
   )
 );
 
 PARTITION TABLE trip_updates ON COLUMN trip_id;
 
--- Sum up delays for a given stop of a trip, used to calculate average delays
-CREATE VIEW v_trip_updates_delay_by_stop
+CREATE TABLE stop_time_updates
 (
-  trip_id,
-  stop_sequence,
-  num_delays,
-  total_delay
-)
-AS
-SELECT trip_id,
-       stop_sequence,
-       COUNT(*),
-       SUM(delay)
-FROM trip_updates
-GROUP BY trip_id, stop_sequence;
+  trip_id        varchar(40) NOT NULL,
+  start_date     timestamp   NOT NULL,
+  start_usec     bigint      NOT NULL, -- pseudo-date
+  time_usec      bigint      NOT NULL, -- pseudo-timestamp (batch update id)
+  stop_sequence  integer     NOT NULL,
+  delay          bigint      NOT NULL,
 
--- The following are GTFS tables
+  PRIMARY KEY
+  (
+    trip_id, start_date, stop_sequence
+  )
+);
+
+PARTITION TABLE stop_time_updates ON COLUMN trip_id;
+
+CREATE TABLE effective_stop_times
+(
+  trip_id        varchar(40) NOT NULL,
+  start_date     timestamp   NOT NULL, -- a delay will be specific to the trip on a particular date
+  time_usec      bigint      NOT NULL, -- pseudo-timestamp (diagnostic source batch update id)
+  arrival_time   timestamp   NOT NULL,
+  arrival_usec   bigint      NOT NULL, -- pseudo-time-of-day
+  departure_time timestamp   NOT NULL,
+  departure_usec bigint      NOT NULL, -- pseudo-time-of-day
+  stop_sequence  integer     NOT NULL,
+
+  PRIMARY KEY
+  (
+    trip_id, start_date, stop_sequence
+  )
+);
+
+PARTITION TABLE effective_stop_times ON COLUMN trip_id;
+
+-- The following are (static) GTFS tables
 
 CREATE TABLE routes
 (
@@ -94,7 +116,9 @@ CREATE TABLE calendar
   service_id varchar(32) NOT NULL,
   weekdays   tinyint     NOT NULL, --compact field
   start_date timestamp   NOT NULL,
+  start_usec bigint      NOT NULL, -- pseudo-timestamp
   end_date   timestamp   NOT NULL,
+  end_usec   bigint      NOT NULL, -- pseudo-timestamp
 
   PRIMARY KEY
   (
@@ -106,6 +130,7 @@ CREATE TABLE calendar_dates
 (
   service_id     varchar(32) NOT NULL,
   date           timestamp   NOT NULL,
+  date_usec      bigint      NOT NULL, -- pseudo-timestamp
   exception_type tinyint     NOT NULL,
 
   PRIMARY KEY
@@ -137,7 +162,9 @@ CREATE TABLE stop_times
 (
   trip_id        varchar(40) NOT NULL,
   arrival_time   timestamp   NOT NULL,
+  arrival_usec   bigint      NOT NULL, -- pseudo-time-of-day
   departure_time timestamp   NOT NULL,
+  departure_usec bigint      NOT NULL, -- pseudo-time-of-day
   stop_id        varchar(32) NOT NULL,
   stop_sequence  integer     NOT NULL,
   stop_headsign  varchar(16) DEFAULT NULL,
@@ -160,6 +187,7 @@ CREATE PROCEDURE FROM CLASS voltdb.gtfs.procedures.InsertStopTimes;
 
 CREATE PROCEDURE FROM CLASS voltdb.realtime.procedures.InsertPosition;
 CREATE PROCEDURE FROM CLASS voltdb.realtime.procedures.InsertUpdate;
+CREATE PROCEDURE FROM CLASS voltdb.realtime.procedures.InsertStopTimeUpdates;
+CREATE PROCEDURE FROM CLASS voltdb.realtime.procedures.EffectStopTimeUpdates;
 
 CREATE PROCEDURE FROM CLASS voltdb.realtime.procedures.GetLatestSchedule;
-CREATE PROCEDURE FROM CLASS voltdb.realtime.procedures.GetAvgStopDelays;

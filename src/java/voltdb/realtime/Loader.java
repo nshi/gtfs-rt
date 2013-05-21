@@ -83,7 +83,7 @@ public class Loader {
 
         try {
             GtfsRealtime.FeedMessage feed = parseFeed(path);
-            long ts = feed.getHeader().getTimestamp();
+            long ts = feed.getHeader().getTimestamp() * 1000 * 1000;
             List<GtfsRealtime.FeedEntity> entities = feed.getEntityList();
             for (GtfsRealtime.FeedEntity entity : entities) {
                 try {
@@ -107,6 +107,8 @@ public class Loader {
         if (vehicle.hasTrip()) {
             GtfsRealtime.TripDescriptor trip = vehicle.getTrip();
             GtfsRealtime.Position position = vehicle.getPosition();
+            long ts = vehicle.getTimestamp();
+            long tsInMicros = ts * 1000 * 1000;
             try {
                 client.callProcedure("InsertPosition",
                                      trip.getTripId(),
@@ -115,7 +117,7 @@ public class Loader {
                                      position.getLatitude(),
                                      position.getLongitude(),
                                      vehicle.getCurrentStopSequence(),
-                                     vehicle.getTimestamp(),
+                                     tsInMicros,
                                      HISTORY);
             } catch (ProcCallException e) {
                 System.err.println(vehicle.toString());
@@ -130,18 +132,36 @@ public class Loader {
     throws IOException, ProcCallException {
         if (update.hasTrip()) {
             GtfsRealtime.TripDescriptor trip = update.getTrip();
+            String trip_id = trip.getTripId();
+            String start = trip.getStartDate();
+            // We might want to consider building arrays or a VoltTable for the stop time updates,
+            // so this all could be done in one transaction.
             List<GtfsRealtime.TripUpdate.StopTimeUpdate> updates = update.getStopTimeUpdateList();
             try {
+                client.callProcedure("InsertUpdate",
+                                     trip_id,
+                                     start,
+                                     ts,
+                                     trip.getScheduleRelationship().getNumber(),
+                                     HISTORY);
                 for (GtfsRealtime.TripUpdate.StopTimeUpdate stopTimeUpdate : updates) {
-                    client.callProcedure("InsertUpdate",
-                                         trip.getTripId(),
-                                         trip.getStartDate(),
+                    int delay = stopTimeUpdate.getArrival().getDelay();
+                    long delayInMicros = delay * 1000 * 1000;
+                    client.callProcedure("InsertStopTimeUpdate",
+                                         trip_id,
+                                         start,
                                          ts,
-                                         trip.getScheduleRelationship().getNumber(),
                                          stopTimeUpdate.getStopSequence(),
-                                         stopTimeUpdate.getArrival().getDelay(),
-                                         HISTORY);
+                                         delayInMicros);
                 }
+                // As an alternative to this extra proc call, the stop time updates could be sorted
+                // by descending stop sequence and processed incrementally on insert
+                // (or instead of insert).
+                // Or there's always the single-transaction approach.
+                client.callProcedure("EffectStopTimeUpdates",
+                                     trip_id,
+                                     start,
+                                     ts);
             } catch (ProcCallException e) {
                 System.err.println(update.toString());
                 throw e;

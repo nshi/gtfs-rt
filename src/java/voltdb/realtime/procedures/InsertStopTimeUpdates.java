@@ -21,8 +21,9 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  */
 
-package voltdb.gtfs.procedures;
+package voltdb.realtime.procedures;
 
+import org.voltdb.ProcInfo;
 import org.voltdb.SQLStmt;
 import org.voltdb.VoltProcedure;
 import org.voltdb.VoltTable;
@@ -32,17 +33,35 @@ import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 
-public class InsertCalendarDates extends VoltProcedure {
+@ProcInfo(
+    partitionInfo = "trip_updates.trip_id:0",
+    singlePartition = true
+)
+public class InsertStopTimeUpdates extends VoltProcedure {
     private final SimpleDateFormat dateFormat = CommonUtils.getDateFormat();
 
+    /// Validation - is there a stop in the base schedule?
+    public final SQLStmt getStopSQL =
+        new SQLStmt("SELECT count(*) FROM stop_times WHERE trip_id = ? AND stop_sequence = ?;");
+
     public final SQLStmt insertSQL =
-        new SQLStmt("INSERT INTO calendar_dates VALUES (?, ?, ?, ?);");
+        new SQLStmt("INSERT INTO stop_time_updates VALUES (?, ?, ?, ?, ?, ?);");
 
-    public VoltTable[] run(String service_id, String dateStr, byte exception_type)
-        throws ParseException {
-        Date date = dateFormat.parse(dateStr);
+    /**
+     */
+    public long run(String trip_id, String start_date, long ts, int stop_sequence, long delay)
+            throws ParseException {
+        Date start = dateFormat.parse(start_date);
+        voltQueueSQL(getStopSQL, trip_id, stop_sequence);
+        VoltTable[] result = voltExecuteSQL();
+        long stopCount = result[0].asScalarLong();
+        if (stopCount != 1) {
+            // No such stop, (or too many?) drop this record
+            return 0;
+        }
 
-        voltQueueSQL(insertSQL, service_id, date, date, exception_type);
-        return voltExecuteSQL();
+        voltQueueSQL(insertSQL, trip_id, start, start, ts, stop_sequence, delay);
+        voltExecuteSQL();
+        return 1;
     }
 }

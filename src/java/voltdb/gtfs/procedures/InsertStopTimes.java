@@ -41,7 +41,7 @@ public class InsertStopTimes extends VoltProcedure {
     private final SimpleDateFormat dateFormat = CommonUtils.getTimeFormat();
 
     public final SQLStmt insertSQL =
-        new SQLStmt("INSERT INTO stop_times VALUES (?, ?, ?, ?, ?, ?, ?, ?);");
+        new SQLStmt("INSERT INTO stop_times VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?);");
 
     public VoltTable[] run(String trip_id, String arrival_str,
                            String departure_str, String stop_id,
@@ -52,6 +52,7 @@ public class InsertStopTimes extends VoltProcedure {
         Date departure_time = dateFormat.parse(departure_str);
 
         voltQueueSQL(insertSQL, trip_id, arrival_time, departure_time,
+                     arrival_time, departure_time,
                      stop_id, stop_seq, stop_headsign, pickup_type,
                      drop_off_type);
         return voltExecuteSQL();

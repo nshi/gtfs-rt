@@ -40,61 +40,50 @@ import java.util.Date;
 public class InsertUpdate extends VoltProcedure {
     private final SimpleDateFormat dateFormat = CommonUtils.getDateFormat();
 
+    /// Garbage collection.
+    /// This MIGHT be more effective if it was not timestamp qualified, as that would collect
+    /// trip_updates for other trip_ids on the same partition that had become inactive.
+    public final SQLStmt deleteOldSQL =
+        new SQLStmt("DELETE FROM trip_updates WHERE trip_id = ? AND timestamp < ?;");
+
+    /// Validation #1. Guard against out-of-order arrival of conflicting updates.
+    public final SQLStmt getLastSQL =
+        new SQLStmt("SELECT COUNT(*) FROM trip_updates WHERE trip_id = ? AND timestamp >= ?;");
+    /// Validation #2. Guard against corrupted trip id or corrupted or out of sync base schedule.
     public final SQLStmt getTripSQL =
         new SQLStmt("SELECT COUNT(*) FROM trips WHERE trip_id = ?;");
 
-    public final SQLStmt getLastSQL =
-        new SQLStmt("SELECT COUNT(*) FROM trip_updates WHERE trip_id = ? AND timestamp >= ?;");
-
-    public final SQLStmt getStopSQL =
-        new SQLStmt("SELECT COUNT(*) FROM stop_times WHERE trip_id = ? AND stop_sequence = ?;");
-
+    /// Main effect.
     public final SQLStmt insertSQL =
         new SQLStmt("INSERT INTO trip_updates VALUES (?, ?, ?, ?, ?, ?);");
-
-    public final SQLStmt deleteOldSQL =
-        new SQLStmt("DELETE FROM trip_updates WHERE trip_id = ? AND timestamp < ?;");
 
     /**
      * @param history the number of seconds of history to keep in the database
      */
     public long run(String trip_id, String start_date, long ts,
-                    byte relationship, int stop_sequence, long delay,
-                    long history)
+                    byte relationship, long history)
             throws ParseException {
+        Date start = dateFormat.parse(start_date);
         long currentTime = getTransactionTime().getTime();
         // Entries before this timestamp will be deleted
         long expiration = currentTime - history;
 
-        Date start = dateFormat.parse(start_date);
-        // Convert timestamp from seconds to micros
-        long tsInMicros = ts * 1000 * 1000;
-        long delayInMicros = delay * 1000 * 1000;
-
-        voltQueueSQL(deleteOldSQL, trip_id, expiration);
-        voltQueueSQL(getLastSQL, trip_id, tsInMicros);
-        voltQueueSQL(getTripSQL, trip_id);
-        voltQueueSQL(getStopSQL, trip_id, stop_sequence);
+        voltQueueSQL(deleteOldSQL, trip_id, expiration);  // -> result[0] (ignored)
+        voltQueueSQL(getLastSQL, trip_id, ts);            // -> result[1]
+        voltQueueSQL(getTripSQL, trip_id);                // -> result[2]
         VoltTable[] result = voltExecuteSQL();
         long newerRecords = result[1].asScalarLong();
-        long tripCount = result[2].asScalarLong();
-        long stopCount = result[3].asScalarLong();
-
         if (newerRecords > 0) {
             // There are newer records for this trip, drop this one
             return 0;
         }
+        long tripCount = result[2].asScalarLong();
         if (tripCount != 1) {
             // No such trip, drop this record
             return 0;
         }
-        if (stopCount != 1) {
-            // No such stop, drop this record
-            return 0;
-        }
 
-        voltQueueSQL(insertSQL, trip_id, start, tsInMicros, relationship,
-                     stop_sequence, delayInMicros);
+        voltQueueSQL(insertSQL, trip_id, start, start, ts, ts, relationship);
         voltExecuteSQL();
         return 1;
     }
