@@ -89,8 +89,15 @@ function loadrt() {
         voltdb.realtime.Loader "$1" $SERVER
 }
 
+# Start the web server, requires Java 7
+function webserver() {
+    export VERTX_MODS=`pwd`/src/webserver
+    cd src/webserver
+    vertx run webserver.groovy
+}
+
 function help() {
-    echo "Usage: ./run.sh {clean|catalog|server|loadgtfs|loadrt}"
+    echo "Usage: ./run.sh {clean|catalog|server|loadgtfs|loadrt|webserver}"
 }
 
 # Run the target passed as the first arg on the command line
