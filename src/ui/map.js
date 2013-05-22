@@ -9,6 +9,8 @@ var endMarker;
 var busPositions = {};
 // true to show bus locations
 var showPositions = false;
+// current bus routes, key is tripID, value is (tripID, startDate, stopID)
+var busTrips = {};
 // Google Maps direction service
 var dirServ = new google.maps.DirectionsService();
 
@@ -26,8 +28,6 @@ function initialize() {
 
   // Create the DIV to hold the position toggle button
   placePositionBtn(map);
-
-  updatePositions([{'name': '34', 'lat': 42.573563, 'lng': -71.221619}]);
 
   google.maps.event.addListener(map, 'click', function(event) {
     placeStartMarker(event.latLng);
@@ -69,12 +69,24 @@ function placeStartMarker(location) {
   map.panTo(location);
 }
 
+function getTripPosition(trip) {
+  query('trip/position/', {'tripId' : trip.id, 'startDate': trip.startDate},
+        function(data) {
+    updatePositions(data);
+
+    if (trip.id in busTrips) {
+      // Update the position 30 seconds later
+      window.setTimeout(function() {getTripPosition(trip);}, 30000);
+    }
+  });
+}
+
 function updatePositions(positions) {
   positions.forEach(function(element) {
-    var marker = busPositions[element['name']];
+    var marker = busPositions[element['tripId']];
     if (!marker) {
       marker = createPositionMarker(element);
-      busPositions[element['name']] = marker;
+      busPositions[element['tripId']] = marker;
     }
 
     marker.setPosition(new google.maps.LatLng(element['lat'], element['lng']));
@@ -108,10 +120,14 @@ function requestTransit(startLocation, endLocation) {
     travelMode: google.maps.TravelMode.TRANSIT
   };
 
+  reset();
+
   dirServ.route(dirReq, function(result, status) {
     if (status === 'OK') {
       var busRoutes = findBusRoute(result);
-      populateRoutesTable(busRoutes);
+      for (var route in busRoutes) {
+        findNextTrip(route, busRoutes[route].name);
+      }
     } else {
       printMsg('No valid results: ' + status, true);
       console.warn(result);
@@ -225,52 +241,26 @@ function togglePositionBtn(btn) {
   }
 }
 
-function query() {
-  var flickerAPI = "http://api.flickr.com/services/feeds/photos_public.gne?jsoncallback=?";
-  $.getJSON(flickerAPI, {
-    tags: "mount rainier",
-    tagmode: "any",
-    format: "json"
-  }).done(function(data) {
-    $.each(data.items, function(i, item) {
-      console.log(item);
-      $('<img/>').attr('src', item.media.m).appendTo('#images');
-      if ( i === 3 ) {
-        return false;
-      } else {
-        return true;
-      }
-    });
-  });
-}
-
 function clearRouteTable() {
   $('#routes > tbody:last').empty();
 }
 
-function addRouteToTable(route) {
+function addRouteToTable(route, trip, stopId, eta) {
   var subscribe = '<form class="form-inline">' +
-        '<input type="hidden" name="route" value="' + route + '">' +
-        '<input class="input-small" id="subscribeButton" name="delay" type="number" placeholder="minutes">' +
+        '<input type="hidden" name="tripId" value="' + trip.id + '">' +
+        '<input type="hidden" name="startDate" value="' + trip.startDate + '">' +
+        '<input type="hidden" name="stopId" value="' + stopId + '">' +
+        '<input class="input-small delayMin" name="delay" type="number" placeholder="minutes">' +
         '</form>';
-  var row = '<tr><td>' + route + '</td><td>' + subscribe + '</td></tr>';
+  var row = '<tr><td>' + route + '</td><td>' + eta + '</td><td>' + subscribe + '</td></tr>';
   $('#routes > tbody:last').append(row);
 
-  // Disable submit on Enter
-  $('form').bind('keyup', function(e) {
-    var code = e.keyCode || e.which;
-    if (code  == 13) {
-      e.preventDefault();
-      return false;
-    } else {
-      return true;
-    }
-  });
-
   // Use Ajax to submit the form so the page doesn't refresh
-  $('#subscribeButton').keydown(function() {
+  $('.delayMin').keydown(function() {
     if (event.keyCode == 13) {
-      console.log(this.form);
+      query('trip/subscribe/', $(this.form).serialize(), function(data) {
+        printMsg(data, false);
+      });
       return false;
     } else {
       return true;
@@ -278,11 +268,28 @@ function addRouteToTable(route) {
   });
 }
 
-function populateRoutesTable(busRoutes) {
-  clearRouteTable();
-  for (var route in busRoutes) {
-    addRouteToTable(route);
-  }
+function subscribeToTrip(trip, stopId, delay) {
+  query('trip/subscribe/',
+        {'tripId' : trip.id,
+         'startDate': trip.startDate,
+         'stopId': stopId,
+         'delay': delay},
+        function(data) {
+    // TODO: what does it return
+  });
+}
+
+function findNextTrip(routeId, stopName) {
+  query('route/', {'routeId' : routeId, 'stopName': stopName},
+        function(data) {
+    console.log('Found next trip ' + data);
+    var trip = {'id': data[0], 'startDate': data[1]};
+    busTrips[trip.id] = data;
+    addRouteToTable(routeId, trip, data[3], data[2]);
+
+    // Start watching the position of the trip
+    getTripPosition(trip);
+  });
 }
 
 function printMsg(msg, warn) {
@@ -294,6 +301,41 @@ function printMsg(msg, warn) {
   } else {
     msgContainer.removeClass('text-error');
   }
+}
+
+function reset() {
+  // Reset route table and trips
+  clearRouteTable();
+  busTrips = {};
+}
+
+function query(endpoint, params, handler) {
+  var apiURL = '/api/' + endpoint;
+  $.getJSON(apiURL, params)
+   .done(function(data) {
+     handler(data);
+   })
+   .fail(function(data) {
+     printMsg(data.statusText, true);
+   });
+}
+
+/**
+ * Check if the returned volt response contains error. If yes, return the status string.
+ */
+function checkErr(result) {
+  if (result['status'] != 1) {
+    return result['statusstring'];
+  } else {
+    return null;
+  }
+}
+
+/**
+ * Retrieve the result VoltTables
+ */
+function getResultTable(result) {
+  return result['results'];
 }
 
 google.maps.event.addDomListener(window, 'load', initialize);
