@@ -38,21 +38,21 @@ import java.util.Date;
     singlePartition = true
 )
 public class InsertPosition extends VoltProcedure {
-    private final SimpleDateFormat dateFormat = CommonUtils.getDateFormat();
+    private static final SimpleDateFormat dateFormat = CommonUtils.getDateFormat();
 
-    public final SQLStmt getTripSQL =
+    public static final SQLStmt getTripSQL =
         new SQLStmt("SELECT COUNT(*) FROM trips WHERE trip_id = ?;");
 
-    public final SQLStmt getLastSQL =
+    public static final SQLStmt getLastSQL =
         new SQLStmt("SELECT COUNT(*) FROM vehicle_positions WHERE trip_id = ? AND timestamp >= ?;");
 
-    public final SQLStmt getStopSQL =
+    public static final SQLStmt getStopSQL =
         new SQLStmt("SELECT COUNT(*) FROM stop_times WHERE trip_id = ? AND stop_sequence = ?;");
 
-    public final SQLStmt insertSQL =
+    public static final SQLStmt insertSQL =
         new SQLStmt("INSERT INTO vehicle_positions VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?);");
 
-    public final SQLStmt deleteOldSQL =
+    public static final SQLStmt deleteOldSQL =
         new SQLStmt("DELETE FROM vehicle_positions WHERE trip_id = ? AND timestamp < ?;");
 
     /**
@@ -89,7 +89,7 @@ public class InsertPosition extends VoltProcedure {
             return 0;
         }
 
-        voltQueueSQL(insertSQL, trip_id, start, start, ts, ts, stop_sequence,
+        voltQueueSQL(insertSQL, trip_id, start_date, start, ts, ts, stop_sequence,
                      relationship, lat, lon);
         voltExecuteSQL();
         return 1;

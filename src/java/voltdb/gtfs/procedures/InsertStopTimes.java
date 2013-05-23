@@ -51,10 +51,8 @@ public class InsertStopTimes extends VoltProcedure {
         Date arrival_time = dateFormat.parse(arrival_str);
         Date departure_time = dateFormat.parse(departure_str);
 
-        voltQueueSQL(insertSQL, trip_id, arrival_time, departure_time,
-                     arrival_time, departure_time,
-                     stop_id, stop_seq, stop_headsign, pickup_type,
-                     drop_off_type);
+        voltQueueSQL(insertSQL, trip_id, arrival_str, arrival_time, departure_str, departure_time,
+                     stop_id, stop_seq, stop_headsign, pickup_type, drop_off_type);
         return voltExecuteSQL();
     }
 }

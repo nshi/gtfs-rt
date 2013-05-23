@@ -34,19 +34,19 @@ import java.text.SimpleDateFormat;
 import java.util.Date;
 
 @ProcInfo(
-    partitionInfo = "trip_updates.trip_id:0",
+    partitionInfo = "trips.trip_id:0",
     singlePartition = true
 )
 public class EffectStopTimeUpdates extends VoltProcedure {
-    private final SimpleDateFormat dateFormat = CommonUtils.getDateFormat();
+    private static final SimpleDateFormat dateFormat = CommonUtils.getNoonBasedDateFormat();
 
     /// Override a prior updates' effects.
-    public final SQLStmt clearPriorSQL = new SQLStmt(
+    public static final SQLStmt clearPriorSQL = new SQLStmt(
         "DELETE FROM effective_stop_times WHERE start_date = ? AND trip_id = ?;");
 
 
     /// Collect input.
-    public final SQLStmt workingSetSQL = new SQLStmt(
+    public static final SQLStmt workingSetSQL = new SQLStmt(
         "SELECT stu.delay delay, st.stop_sequence seq, st.arrival_usec arrival, st.departure_usec departure " +
         "FROM stop_times st LEFT JOIN stop_time_updates stu " +
         "ON stu.trip_id = st.trip_id AND stu.stop_sequence = st.stop_sequence " +
@@ -56,16 +56,16 @@ public class EffectStopTimeUpdates extends VoltProcedure {
 
 
     /// Main effect.
-    public final SQLStmt insertSQL =
-        new SQLStmt("INSERT INTO effective_stop_times VALUES (?, ?, ?, ?, ?, ?, ?, ?);");
+    public static final SQLStmt insertSQL =
+        new SQLStmt("INSERT INTO effective_stop_times VALUES (?, ?, ?, ?, ?, ?, ?);");
 
     /**
      */
     public long run(String trip_id, String start_date, long ts) throws ParseException
     {
         Date start = dateFormat.parse(start_date);
-        voltQueueSQL(clearPriorSQL, start, trip_id);
-        voltQueueSQL(workingSetSQL, start, ts, trip_id);
+        voltQueueSQL(clearPriorSQL, start_date, trip_id);
+        voltQueueSQL(workingSetSQL, start_date, ts, trip_id);
         VoltTable workingSet = voltExecuteSQL()[0];
         long delay = 0;
 
@@ -82,17 +82,17 @@ public class EffectStopTimeUpdates extends VoltProcedure {
             else {
                 // stu.delay st.stop_sequence st.arrival_usec st.departure_usec
                 int stop_sequence = (int) workingSet.getLong(1);
-                long arrival_time = workingSet.getLong(2);
-                long departure_time = workingSet.getLong(3);
-                arrival_time += delay;
+                long arrival = workingSet.getLong(2);
+                long departure = workingSet.getLong(3);
+                arrival += delay;
                 // Assume that delay has no effect on the stop's duration
                 // -- there appears to be no way to express that idea in the model.
                 // Logically, we could "look ahead" to the next stop / next delay and enforce that the
                 // departure at least did not exceed the next arrival (which may have a different delay),
                 // but, for now for simplicity, we currently just allow such contradictions.
-                departure_time += delay;
-                voltQueueSQL(insertSQL, trip_id, start, ts,
-                             arrival_time, arrival_time, departure_time, departure_time, stop_sequence);
+                departure += delay;
+                voltQueueSQL(insertSQL,
+                             trip_id, start_date, start, ts, arrival, departure, stop_sequence);
             }
         }
         voltExecuteSQL();

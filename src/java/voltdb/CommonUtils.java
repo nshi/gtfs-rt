@@ -25,12 +25,58 @@ package voltdb;
 
 import org.voltdb.VoltTable;
 
+import java.text.FieldPosition;
+import java.text.ParseException;
 import java.text.SimpleDateFormat;
+
+import java.util.Date;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 import java.util.TimeZone;
 
 public class CommonUtils {
+    private static class NoonBasedDateFormat extends SimpleDateFormat {
+        final SimpleDateFormat outputFormat;
+        NoonBasedDateFormat(String format)
+        {
+            super(format + " HH:mm:ss");
+            outputFormat = new SimpleDateFormat(format);
+        }
+        // This formatter is intended for "date stamps" representing midnight.
+        // It may slightly re-interpret midnight as an hour ahead or behind the normal
+        // time value of midnight on days that contain an early morning daylight savings adjustment.
+        // It essentially jumps the gun on that transition, springing forward or falling back
+        // at the end of the previous day, just PRIOR to midnight.
+        public Date parse(String input) throws ParseException
+        {
+            Date noonBased = super.parse(input + " 12:00:00");
+            noonBased.setTime(noonBased.getTime() - 12*60*60*1000); // 12 hours of millis before noon.
+            return noonBased;
+        }
+
+        // Reverse the parse process to "correct" the date for a midnight timestamp that became 11:00PM.
+        // The reworking here should have no effect on other (true or 1:00AM) values of midnight.
+        public StringBuffer format(Date date,
+                                   StringBuffer toAppendTo,
+                                   FieldPosition fieldPosition)
+        {
+            // Add 11 1/2 hours to the "midnight" time to get 10:30AM, 11:30AM, or 12:30PM.
+            Date patched = new Date(date.getTime() + (11*60+30)*60*1000);
+            // Truncate the unexpected time digits to leave the adjusted (next morning) date.
+            return outputFormat.format(patched, toAppendTo, fieldPosition);
+        }
+    };
+
+    
+    private static SimpleDateFormat getNoonBasedDateFormatInTimeZone(String format, String timezone)
+    {
+        final SimpleDateFormat dateFormat = new NoonBasedDateFormat(format);
+        dateFormat.setTimeZone(TimeZone.getTimeZone(timezone));
+        return dateFormat;
+    }
+
     private static SimpleDateFormat getDateFormatInTimeZone(String format, String timezone)
     {
         final SimpleDateFormat dateFormat = new SimpleDateFormat(format);
@@ -39,12 +85,12 @@ public class CommonUtils {
     }
 
     /**
-     * Create a SimpleDateFormat that parses time in the format "HH:mm:ss" in
-     * Eastern Time.
+     * Create a SimpleDateFormat that parses time in the format "HH:mm:ss" in UTC/GMT to
+     * generate pure offset times that can be added to date timestamps.
      */
     public static SimpleDateFormat getTimeFormat()
     {
-        return getDateFormatInTimeZone("HH:mm:ss", "America/New_York");
+        return getDateFormatInTimeZone("HH:mm:ss", "UTC");
     }
 
     /**
@@ -53,27 +99,63 @@ public class CommonUtils {
      */
     public static SimpleDateFormat getDateFormat()
     {
-        return getDateFormatInTimeZone("yyyyMMdd", "America/New_York");
+        return getNoonBasedDateFormatInTimeZone("yyyyMMdd", "America/New_York");
     }
+
+    /**
+     * Create a SimpleDateFormat that parses date in the format "yyyyMMdd" in
+     * Eastern Time but uses the GTFS concept of start-of-day always being 12 hours before noon.
+     */
+    public static SimpleDateFormat getNoonBasedDateFormat()
+    {
+        return getNoonBasedDateFormatInTimeZone("yyyyMMdd", "America/New_York");
+    }
+
+    /**
+     * Create a SimpleDateFormat that parses date in the format "yyyyMMdd" in
+     * Eastern Time.
+     */
+    public static SimpleDateFormat getWeekdayFormat()
+    {
+        return getDateFormatInTimeZone("EEE", "America/New_York");
+    }
+
 
     public static VoltTable createTableFromTemplate(VoltTable template)
     {
-        VoltTable.ColumnInfo[] columns = new VoltTable.ColumnInfo[template.getColumnCount()];
-        for (int i = 0; i < template.getColumnCount(); i++) {
+        return privCreateTableFromTemplate(template, template.getColumnCount());
+    }
+    
+    public static VoltTable createNarrowedTableFromTemplate(VoltTable template, int column_count)
+    {
+        return privCreateTableFromTemplate(template, column_count);
+    }
+
+    private static VoltTable privCreateTableFromTemplate(VoltTable template, int column_count)
+    {
+        VoltTable.ColumnInfo[] columns = new VoltTable.ColumnInfo[column_count];
+        for (int i = 0; i < column_count; i++) {
             columns[i] = new VoltTable.ColumnInfo(template.getColumnName(i),
                                                   template.getColumnType(i));
         }
         return new VoltTable(columns);
     }
 
-    public static Map<Long, Long> parseIDMapFromTableColumns(VoltTable updates,
-                                                             int keyColumn, int valueColumn)
+    public static Set<Long> createSetFromTableColumn(VoltTable table,
+                                                     int column)
     {
-        Map<Long, Long> map = new HashMap<Long, Long>();
-        while (updates.advanceRow()) {
-            map.put(updates.getLong(keyColumn), updates.getLong(valueColumn));
+        Set<Long> set = new HashSet<Long>();
+        loadSetFromTableColumn(table, column, set);
+        return set;
+    }
+
+    public static void loadSetFromTableColumn(VoltTable table,
+                                              int column,
+                                              Set<Long> set)
+    {
+        while (table.advanceRow()) {
+            set.add(table.getLong(column));
         }
-        return map;
     }
 
 }

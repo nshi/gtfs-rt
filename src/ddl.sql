@@ -3,7 +3,7 @@
 CREATE TABLE vehicle_positions
 (
   trip_id       varchar(40) NOT NULL,
-  start_date    timestamp   NOT NULL,
+  start_date    varchar(8)  NOT NULL,
   start_usec    bigint      NOT NULL, -- pseudo-date
   timestamp     timestamp   NOT NULL,
   time_usec     bigint      NOT NULL, -- pseudo-timestamp
@@ -23,7 +23,7 @@ PARTITION TABLE vehicle_positions ON COLUMN trip_id;
 CREATE TABLE trip_updates
 (
   trip_id       varchar(40) NOT NULL,
-  start_date    timestamp   NOT NULL,
+  start_date    varchar(8)  NOT NULL,
   start_usec    bigint      NOT NULL, -- pseudo-date
   timestamp     timestamp   NOT NULL,
   time_usec     bigint      NOT NULL, -- pseudo-timestamp
@@ -40,7 +40,7 @@ PARTITION TABLE trip_updates ON COLUMN trip_id;
 CREATE TABLE stop_time_updates
 (
   trip_id        varchar(40) NOT NULL,
-  start_date     timestamp   NOT NULL,
+  start_date     varchar(8)  NOT NULL,
   start_usec     bigint      NOT NULL, -- pseudo-date
   time_usec      bigint      NOT NULL, -- pseudo-timestamp (batch update id)
   stop_sequence  integer     NOT NULL,
@@ -57,11 +57,10 @@ PARTITION TABLE stop_time_updates ON COLUMN trip_id;
 CREATE TABLE effective_stop_times
 (
   trip_id        varchar(40) NOT NULL,
-  start_date     timestamp   NOT NULL, -- a delay will be specific to the trip on a particular date
+  start_date     varchar(8)  NOT NULL, -- a delay will be specific to the trip on a particular date
+  start_usec     bigint      NOT NULL, -- pseudo-timestamp
   time_usec      bigint      NOT NULL, -- pseudo-timestamp (diagnostic source batch update id)
-  arrival_time   timestamp   NOT NULL,
   arrival_usec   bigint      NOT NULL, -- pseudo-time-of-day
-  departure_time timestamp   NOT NULL,
   departure_usec bigint      NOT NULL, -- pseudo-time-of-day
   stop_sequence  integer     NOT NULL,
 
@@ -115,9 +114,9 @@ CREATE TABLE calendar
 (
   service_id varchar(32) NOT NULL,
   weekdays   tinyint     NOT NULL, --compact field
-  start_date timestamp   NOT NULL,
+  start_date varchar(8)  NOT NULL,
   start_usec bigint      NOT NULL, -- pseudo-timestamp
-  end_date   timestamp   NOT NULL,
+  end_date   varchar(8)  NOT NULL,
   end_usec   bigint      NOT NULL, -- pseudo-timestamp
 
   PRIMARY KEY
@@ -129,7 +128,7 @@ CREATE TABLE calendar
 CREATE TABLE calendar_dates
 (
   service_id     varchar(32) NOT NULL,
-  date           timestamp   NOT NULL,
+  date           varchar(8)  NOT NULL,
   date_usec      bigint      NOT NULL, -- pseudo-timestamp
   exception_type tinyint     NOT NULL,
 
@@ -161,9 +160,9 @@ CREATE TABLE stops
 CREATE TABLE stop_times
 (
   trip_id        varchar(40) NOT NULL,
-  arrival_time   timestamp   NOT NULL,
+  arrival_time   varchar(8)  NOT NULL,
   arrival_usec   bigint      NOT NULL, -- pseudo-time-of-day
-  departure_time timestamp   NOT NULL,
+  departure_time varchar(8)  NOT NULL,
   departure_usec bigint      NOT NULL, -- pseudo-time-of-day
   stop_id        varchar(32) NOT NULL,
   stop_sequence  integer     NOT NULL,
@@ -191,3 +190,28 @@ CREATE PROCEDURE FROM CLASS voltdb.realtime.procedures.InsertStopTimeUpdates;
 CREATE PROCEDURE FROM CLASS voltdb.realtime.procedures.EffectStopTimeUpdates;
 
 CREATE PROCEDURE FROM CLASS voltdb.realtime.procedures.GetLatestSchedule;
+CREATE PROCEDURE FROM CLASS voltdb.realtime.procedures.FindBetterTime;
+
+CREATE PROCEDURE FindTrips AS
+    SELECT st.trip_id trip_id, st.stop_sequence stop_sequence
+    FROM stops s, stop_times st, trips t -- add? , routes r
+    WHERE st.stop_id = s.stop_id
+    AND t.trip_id = st.trip_id
+    -- add? AND t.route_id = st.trip_id
+    AND s.stop_name = ?
+    AND t.route_id = ? -- switch to? r.route_short_name = ?
+    ORDER BY 1, 2
+    ;
+
+-- Get the scheduled stop time with a possible overriding effective (rescheduled) time.
+CREATE PROCEDURE CheckArrival AS
+    SELECT est.arrival_usec effective_arrival, st.arrival_usec fallback_arrival
+    FROM stop_times st LEFT JOIN effective_stop_times est
+    ON st.trip_id = est.trip_id AND st.stop_sequence = est.stop_sequence AND est.start_usec = ?
+    WHERE st.trip_id = ?
+    AND st.stop_sequence = ?
+    ORDER BY 2, 1 -- Not required since record should be unique, but this smells more deterministic.
+    LIMIT 1
+    ;
+PARTITION PROCEDURE CheckArrival ON TABLE stop_times COLUMN trip_id PARAMETER 1;
+    

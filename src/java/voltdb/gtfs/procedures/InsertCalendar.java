@@ -41,14 +41,14 @@ public class InsertCalendar extends VoltProcedure {
     public static final byte SAT  = 1 << 5;
     public static final byte SUN  = 1 << 6;
 
-    private final SimpleDateFormat dateFormat = CommonUtils.getDateFormat();
+    private static final SimpleDateFormat dateFormat = CommonUtils.getNoonBasedDateFormat();
 
-    public final SQLStmt insertSQL =
+    public static final SQLStmt insertSQL =
         new SQLStmt("INSERT INTO calendar VALUES (?, ?, ?, ?, ?, ?);");
 
     public VoltTable[] run(String service_id, byte mon, byte tue, byte wed,
                            byte thur, byte fri, byte sat, byte sun,
-                           String start_date, String end_date)
+                           String start, String end)
             throws ParseException {
         byte weekdays = (byte) (MON * mon
                                 | TUE * tue
@@ -57,10 +57,10 @@ public class InsertCalendar extends VoltProcedure {
                                 | FRI * fri
                                 | SAT * sat
                                 | SUN * sun);
-        Date start = dateFormat.parse(start_date);
-        Date end = dateFormat.parse(end_date);
+        Date start_date = dateFormat.parse(start);
+        Date end_date = dateFormat.parse(end);
 
-        voltQueueSQL(insertSQL, service_id, weekdays, start, end, start, end);
+        voltQueueSQL(insertSQL, service_id, weekdays, start, start_date, end, end_date);
         return voltExecuteSQL();
     }
 }

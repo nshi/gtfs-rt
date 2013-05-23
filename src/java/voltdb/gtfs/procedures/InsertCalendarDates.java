@@ -33,16 +33,16 @@ import java.text.SimpleDateFormat;
 import java.util.Date;
 
 public class InsertCalendarDates extends VoltProcedure {
-    private final SimpleDateFormat dateFormat = CommonUtils.getDateFormat();
+    private final SimpleDateFormat dateFormat = CommonUtils.getNoonBasedDateFormat();
 
     public final SQLStmt insertSQL =
         new SQLStmt("INSERT INTO calendar_dates VALUES (?, ?, ?, ?);");
 
-    public VoltTable[] run(String service_id, String dateStr, byte exception_type)
+    public VoltTable[] run(String service_id, String date_str, byte exception_type)
         throws ParseException {
-        Date date = dateFormat.parse(dateStr);
+        Date date = dateFormat.parse(date_str);
 
-        voltQueueSQL(insertSQL, service_id, date, date, exception_type);
+        voltQueueSQL(insertSQL, service_id, date_str, date, exception_type);
         return voltExecuteSQL();
     }
 }

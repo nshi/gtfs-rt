@@ -38,13 +38,13 @@ import java.util.Date;
     singlePartition = true
 )
 public class InsertStopTimeUpdates extends VoltProcedure {
-    private final SimpleDateFormat dateFormat = CommonUtils.getDateFormat();
+    private static final SimpleDateFormat dateFormat = CommonUtils.getNoonBasedDateFormat();
 
     /// Validation - is there a stop in the base schedule?
-    public final SQLStmt getStopSQL =
+    public static final SQLStmt getStopSQL =
         new SQLStmt("SELECT count(*) FROM stop_times WHERE trip_id = ? AND stop_sequence = ?;");
 
-    public final SQLStmt insertSQL =
+    public static final SQLStmt insertSQL =
         new SQLStmt("INSERT INTO stop_time_updates VALUES (?, ?, ?, ?, ?, ?);");
 
     /**

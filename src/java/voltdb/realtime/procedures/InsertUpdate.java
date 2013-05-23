@@ -38,23 +38,23 @@ import java.util.Date;
     singlePartition = true
 )
 public class InsertUpdate extends VoltProcedure {
-    private final SimpleDateFormat dateFormat = CommonUtils.getDateFormat();
+    private static final SimpleDateFormat dateFormat = CommonUtils.getNoonBasedDateFormat();
 
     /// Garbage collection.
     /// This MIGHT be more effective if it was not timestamp qualified, as that would collect
     /// trip_updates for other trip_ids on the same partition that had become inactive.
-    public final SQLStmt deleteOldSQL =
+    public static final SQLStmt deleteOldSQL =
         new SQLStmt("DELETE FROM trip_updates WHERE trip_id = ? AND timestamp < ?;");
 
     /// Validation #1. Guard against out-of-order arrival of conflicting updates.
-    public final SQLStmt getLastSQL =
+    public static final SQLStmt getLastSQL =
         new SQLStmt("SELECT COUNT(*) FROM trip_updates WHERE trip_id = ? AND timestamp >= ?;");
     /// Validation #2. Guard against corrupted trip id or corrupted or out of sync base schedule.
-    public final SQLStmt getTripSQL =
+    public static final SQLStmt getTripSQL =
         new SQLStmt("SELECT COUNT(*) FROM trips WHERE trip_id = ?;");
 
     /// Main effect.
-    public final SQLStmt insertSQL =
+    public static final SQLStmt insertSQL =
         new SQLStmt("INSERT INTO trip_updates VALUES (?, ?, ?, ?, ?, ?);");
 
     /**
