@@ -63,10 +63,11 @@ public class FindBetterTime extends VoltProcedure {
         // Get the scheduled stops possibly repeated to reflect effective (rescheduled) times.
         new SQLStmt("SELECT est.start_usec + est.arrival_usec arrival_datetime, " +
                     "est.start_usec start_date, " +
-                    "st.arrival_time scheduled_arrival, " +
+                    "st.arrival_usec scheduled_arrival, " +
                     "est.arrival_usec effective_arrival " +
                     "FROM stop_times st LEFT JOIN effective_stop_times est " +
                     "ON st.trip_id = est.trip_id AND st.stop_sequence = est.stop_sequence " +
+                    "AND est.start_usec + est.arrival_usec >= ? " +
                     "WHERE st.trip_id = ? " +
                     "AND st.stop_sequence = ? " +
                     "ORDER BY 3, 1, 2, 4 " + // Usefully, ORDER BY 3
@@ -108,7 +109,7 @@ public class FindBetterTime extends VoltProcedure {
     public VoltTable run(String trip_id, int stop_sequence, long earliest, long latest)
         throws ParseException
     {
-        voltQueueSQL(getScheduledStopTimesSQL, trip_id, stop_sequence, earliest);
+        voltQueueSQL(getScheduledStopTimesSQL, earliest, trip_id, stop_sequence);
         VoltTable[] results = voltExecuteSQL();
         VoltTable result = results[0];
 
@@ -117,8 +118,9 @@ public class FindBetterTime extends VoltProcedure {
             return null;
         }
 
+        result.advanceRow();
         final Set<Long> forbiddenTripStarts = new HashSet<Long>();
-        // This ON TIME arrival detail will be useful when considering ON TIME arrivals outside the loop.
+        // This arrival detail will be useful when considering ON TIME arrivals outside the loop.
         long scheduled_arrival = result.getLong("scheduled_arrival");
         long best_start_date = Long.MAX_VALUE;
         long best_arrival = Long.MAX_VALUE;
@@ -131,7 +133,7 @@ public class FindBetterTime extends VoltProcedure {
         // OR all updated trip arrivals may have past, so that the next ON TIME arrival is best.
         long eff_start_date = result.getLong("start_date");
         if ( ! result.wasNull()) {
-            while (result.advanceRow()) {
+            do {
                 // Updated stop times have a side effect of eliminating their start dates
                 // from consideration for finding an ON TIME arrival.
                 forbiddenTripStarts.add(eff_start_date);
@@ -155,7 +157,7 @@ public class FindBetterTime extends VoltProcedure {
                 // Don't consider ON TIME trips that start later than this.
                 best_start_date = eff_start_date;
                 best_arrival = eff_arrival;
-            }
+            } while (result.advanceRow());
         }
 
         VoltTable schedule = CommonUtils.createNarrowedTableFromTemplate(result, 2);
@@ -213,6 +215,7 @@ public class FindBetterTime extends VoltProcedure {
 
         long first_added = Long.MAX_VALUE;
         if (adds.getRowCount() > 0) {
+            adds.advanceRow();
             first_added = adds.getLong(0) / 1000; // micros to millis.
             too_late_to_start = first_added; // This beats later calendar dates.
             adds = null;
@@ -222,6 +225,7 @@ public class FindBetterTime extends VoltProcedure {
         long cal_stop = 0;
         byte weekdays = 0;
         if (calendar.getRowCount() != 0) {
+            calendar.advanceRow();
             cal_start = calendar.getLong(1);
             if (cal_start >= first_added) {
                 cal_start = Long.MAX_VALUE; // The added date beats later calendar dates.

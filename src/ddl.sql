@@ -110,6 +110,9 @@ CREATE TABLE trips
 
 PARTITION TABLE trips ON COLUMN trip_id;
 
+CREATE UNIQUE INDEX routed_trips ON trips(route_id, trip_id);
+
+
 CREATE TABLE calendar
 (
   service_id varchar(32) NOT NULL,
@@ -157,6 +160,8 @@ CREATE TABLE stops
   )
 );
 
+CREATE UNIQUE INDEX named_stops ON stops(stop_name, stop_id);
+
 CREATE TABLE stop_times
 (
   trip_id        varchar(40) NOT NULL,
@@ -177,6 +182,8 @@ CREATE TABLE stop_times
 );
 
 PARTITION TABLE stop_times ON COLUMN trip_id;
+
+CREATE UNIQUE INDEX id_stop_times ON stop_times(stop_id, trip_id, stop_sequence);
 
 -- Stored procedures
 CREATE PROCEDURE FROM CLASS voltdb.gtfs.procedures.InsertCalendar;
